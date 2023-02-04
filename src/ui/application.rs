@@ -2,7 +2,7 @@ use stylist::{css, style, yew::Global};
 use yew::prelude::*;
 
 use super::{
-    component_list::ComponentList, main_header::main_header::MainHeader, toolbar::Toolbar,
+    component_list::component_list::ComponentList, main_header::main_header::MainHeader, toolbar::Toolbar,
     workspace::Workspace,
 };
 
