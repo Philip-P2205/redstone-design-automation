@@ -10,8 +10,8 @@ use web_sys::{window, CanvasRenderingContext2d};
 use yew::{html, Classes, Component, Properties};
 
 use super::{
-    canvas::{Canvas, CanvasContextRenderer, CanvasElement, CanvasRenderer, CanvasSVGImage},
-    logic_gates::and_gate::AndGate,
+    canvas::{Canvas, CanvasContextRenderer, CanvasElement, CanvasRenderer},
+    logic_gates::AndGate,
 };
 pub struct Workspace {}
 
@@ -137,12 +137,17 @@ impl Workarea {
                 });
             closure.into_js_value().dyn_into().unwrap()
         };
-
         {
             canvas_elements
                 .borrow_mut()
-                .push(CanvasSVGImage::new(AndGate::new().get_svg_string()).into());
+                .push(AndGate::new((0.0, 0.0)).into());
         }
+
+        // {
+        //     canvas_elements
+        //         .borrow_mut()
+        //         .push(CanvasSVGImage::new(AndGate::new().get_svg_string()).into());
+        // }
         Workarea {
             mouse_position,
             width,
