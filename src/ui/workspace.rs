@@ -11,7 +11,7 @@ use yew::{html, Classes, Component, Properties};
 
 use super::{
     canvas::{Canvas, CanvasContextRenderer, CanvasElement, CanvasRenderer},
-    logic_gates::AndGate,
+    logic_gates::*,
 };
 pub struct Workspace {}
 
@@ -20,7 +20,7 @@ pub struct WorkspaceProps {
     #[prop_or_default]
     pub class: Classes,
     /// The size of the grid
-    #[prop_or("1.5em")]
+    #[prop_or("25px")]
     pub grid_size: &'static str,
 }
 
@@ -140,7 +140,13 @@ impl Workarea {
         {
             canvas_elements
                 .borrow_mut()
-                .push(AndGate::new((0.0, 0.0)).into());
+                .push(LogicGate::new_with_inverted_inputs(LogicGateType::Nand, (0.0, 0.0), (true, true)).into());
+            canvas_elements
+                .borrow_mut()
+                .push(LogicGate::new(LogicGateType::Nor, (0.0, 100.0)).into());
+            canvas_elements
+                .borrow_mut()
+                .push(LogicGate::new(LogicGateType::And, (0.0, 200.0)).into());
         }
 
         // {
