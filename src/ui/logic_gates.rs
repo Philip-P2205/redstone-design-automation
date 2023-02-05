@@ -1,3 +1,5 @@
+use wasm_bindgen::JsValue;
+
 use crate::ui::canvas::{ContextRenderer, SVGImage};
 
 use super::{
@@ -99,16 +101,19 @@ pub struct LogicGate {
     image: SVGImage,
 }
 impl LogicGate {
-    pub fn new(gate_type: LogicGateType) -> Self {
+    pub fn new(gate_type: LogicGateType) -> Result<Self, JsValue> {
         Self::new_with_inverted_inputs(gate_type, (false, false))
     }
 
     pub fn new_with_inverted_inputs(
         gate_type: LogicGateType,
         inputs_inverted: (bool, bool),
-    ) -> Self {
-        let image = SVGImage::new(gate_type.get_svg_string(inputs_inverted));
-        Self { _gate_type: gate_type, image }
+    ) -> Result<Self, JsValue> {
+        let image = SVGImage::new(gate_type.get_svg_string(inputs_inverted))?;
+        Ok(Self {
+            _gate_type: gate_type,
+            image,
+        })
     }
     pub const fn get_connection_points() -> [ConnectionPoint; 3] {
         [
@@ -119,10 +124,13 @@ impl LogicGate {
     }
 }
 impl ContextRenderer for LogicGate {
-    fn render_at_position(&self, ctx: &web_sys::CanvasRenderingContext2d, position: (f64, f64)) {
+    fn render_at_position(
+        &self,
+        ctx: &web_sys::CanvasRenderingContext2d,
+        position: (f64, f64),
+    ) -> Result<(), JsValue> {
         // use LogicGateType::{And, Nand, Nor, Or, Xor};
         ctx.draw_image_with_html_image_element(&self.image.image, position.0, position.1)
-            .unwrap();
         // match self.gate_type {
         //     And => ctx
         //         .draw_image_with_html_image_element(&self.image.image, position.0, position.1)
@@ -143,8 +151,9 @@ impl ContextRenderer for LogicGate {
     }
 }
 
-impl From<LogicGateType> for LogicGate {
-    fn from(value: LogicGateType) -> Self {
+impl TryFrom<LogicGateType> for LogicGate {
+    type Error = JsValue;
+    fn try_from(value: LogicGateType) -> Result<Self, Self::Error> {
         Self::new(value)
     }
 }

@@ -51,12 +51,16 @@ impl ConnectionPoint {
 }
 
 impl ContextRenderer for ConnectionPoint {
-    fn render_at_position(&self, ctx: &web_sys::CanvasRenderingContext2d, position: (f64, f64)) {
+    fn render_at_position(
+        &self,
+        ctx: &web_sys::CanvasRenderingContext2d,
+        position: (f64, f64),
+    ) -> Result<(), JsValue> {
         ctx.begin_path();
         ctx.set_stroke_style(&JsValue::from_str("red"));
         ctx.set_fill_style(&JsValue::from_str("red"));
-        ctx.arc(self.x + position.0, self.y + position.1, 5.0, 0.0, 2.0 * PI)
-            .unwrap();
+        ctx.arc(self.x + position.0, self.y + position.1, 5.0, 0.0, 2.0 * PI)?;
         ctx.fill();
+        Ok(())
     }
 }

@@ -3,15 +3,17 @@ use std::{
     rc::Rc,
 };
 
+use gloo::utils::window;
 use js_sys::Function;
 use stylist::style;
 use wasm_bindgen::{prelude::Closure, JsCast, JsValue};
-use web_sys::{window, CanvasRenderingContext2d};
+use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement};
 use yew::{html, Classes, Component, Properties};
 
 use super::{
-    canvas::{Canvas, ContextRenderer, Element, IntoCanvasElement, Renderer},
+    canvas::{Canvas, Element, IntoCanvasElement, Renderer},
     connection_point::ConnectionPoint,
+    console_option::ConsoleOption,
     logic_gates::{LogicGate, LogicGateType},
 };
 
@@ -55,7 +57,7 @@ impl Component for Workspace {
                                  "ruler_side workarea";
         "#
         )
-        .unwrap();
+        .unwrap_to_console();
         let mut classes = ctx.props().class.clone();
 
         let style_workarea = style!(r#"
@@ -67,9 +69,9 @@ impl Component for Workspace {
             background-size: ${grid_size} ${grid_size};
         "#,
         grid_size= ctx.props().grid_size
-    ).unwrap();
+    ).unwrap_to_console();
         classes.push(style_workspace);
-        let workarea = Workarea::new();
+        let workarea = Workarea::new().unwrap_to_console();
 
         html! (
             <div class={ classes }>
@@ -98,18 +100,16 @@ struct Workarea {
 
 impl Workarea {
     #[allow(clippy::cast_possible_truncation)]
-    fn new() -> Self {
-        let width = Rc::new(Cell::new(
-            window().unwrap().inner_width().unwrap().as_f64().unwrap() as i32,
-        ));
-        let height = Rc::new(Cell::new(
-            window().unwrap().inner_height().unwrap().as_f64().unwrap() as i32,
-        ));
+    fn new() -> Result<Self, JsValue> {
+        let width = Rc::new(Cell::new(Self::get_width()));
+        let height = Rc::new(Cell::new(Self::get_height()));
         let mouse_position = Rc::new(Cell::new((0, 0)));
         let grid_position = Rc::new(Cell::new((0.0, 0.0)));
         let canvas_elements: Rc<RefCell<Vec<Element>>> = Rc::new(RefCell::new(Vec::new()));
         let selected_tool: Rc<RefCell<Option<Element>>> = Rc::new(RefCell::new(Some(
-            LogicGate::new(LogicGateType::And).into_canvas_element((0.0, 0.0)),
+            LogicGate::new(LogicGateType::And)
+                .unwrap_to_console()
+                .into_canvas_element((0.0, 0.0)),
         )));
         let connection_points = Rc::new(RefCell::new(Vec::new()));
 
@@ -132,7 +132,7 @@ impl Workarea {
                         }
                     }
                 });
-            closure.into_js_value().dyn_into().unwrap()
+            closure.into_js_value().dyn_into()?
         };
         let onmousemove = {
             let grid_position = grid_position.clone();
@@ -143,7 +143,7 @@ impl Workarea {
                     // _mouse_position.replace((event.client_x() - 247, event.client_y() - 97));
                     grid_position.replace((x, y));
                 });
-            closure.into_js_value().dyn_into().unwrap()
+            closure.into_js_value().dyn_into()?
         };
         {
             // canvas_elements.borrow_mut().push(
@@ -158,7 +158,7 @@ impl Workarea {
             //     .push(LogicGate::new(LogicGateType::And).as_canvas_element((200.0, 0.0)));
         }
 
-        Self {
+        Ok(Self {
             mouse_position,
             grid_position,
             width,
@@ -169,32 +169,42 @@ impl Workarea {
             canvas_elements,
             selected_tool,
             connection_points,
-        }
+        })
     }
 
     #[allow(clippy::cast_possible_truncation)]
     fn get_width() -> i32 {
-        window().unwrap().inner_width().unwrap().as_f64().unwrap() as i32 - 247
+        window()
+            .inner_width()
+            .expect_to_console("Could not get windows inner width")
+            .as_f64()
+            .expect_to_console("Could not get windows inner width as f64") as i32
+            - 247
     }
     #[allow(clippy::cast_possible_truncation)]
     fn get_height() -> i32 {
-        window().unwrap().inner_height().unwrap().as_f64().unwrap() as i32 - 97
+        window()
+            .inner_height()
+            .expect_to_console("Could not get windows inner height")
+            .as_f64()
+            .expect_to_console("Could not get windows inner height as f64") as i32
+            - 97
     }
 
     fn init(&self, canvas: &web_sys::HtmlCanvasElement) {
         self.initialized.replace(true);
         canvas
             .add_event_listener_with_callback("mousemove", &self.onmousemove)
-            .unwrap();
+            .expect_to_console("Could not add event listener mousemove");
         canvas
             .add_event_listener_with_callback("click", &self.onclick)
-            .unwrap();
+            .expect_to_console("Could not add event listener click");
     }
 
     /// This is a simple function to render the currently selected tool
-    fn render_selected_tool(&self, context: &CanvasRenderingContext2d) {
+    fn render_selected_tool(&self, context: &CanvasRenderingContext2d) -> Result<(), JsValue> {
         if let Some(tool) = &self.selected_tool.borrow().as_ref() {
-            tool.render_at_position(context, self.grid_position.clone().get());
+            tool.render_at_position(context, self.grid_position.clone().get())?;
             for cp in tool.get_connection_points() {
                 let cp1 = &cp.get_absolute_at_position(self.grid_position.clone().get());
                 for cp2 in self.connection_points.borrow().iter() {
@@ -208,6 +218,7 @@ impl Workarea {
                 }
             }
         }
+        Ok(())
     }
     fn render_connections(&self, context: &CanvasRenderingContext2d) {
         for cp1 in self.connection_points.borrow().iter() {
@@ -246,22 +257,24 @@ impl Workarea {
         }
         false
     }
+
+    fn get_context_from_canvas(
+        canvas: &HtmlCanvasElement,
+    ) -> Result<CanvasRenderingContext2d, JsValue> {
+        Ok(canvas
+            .get_context("2d")?
+            .ok_or_else(JsValue::null)? // We dont really care about the exact error, just that it didnt work, so null is fine here
+            .dyn_into()?)
+    }
 }
 
 impl Renderer for Workarea {
-    fn render(&self, canvas: &web_sys::HtmlCanvasElement) {
+    fn render(&self, canvas: &web_sys::HtmlCanvasElement) -> Result<(), JsValue> {
         let _init = self.initialized.get();
         if !self.initialized.get() {
             self.init(canvas);
         }
-        let context = Rc::new(
-            canvas
-                .get_context("2d")
-                .unwrap()
-                .unwrap()
-                .dyn_into::<CanvasRenderingContext2d>()
-                .unwrap(),
-        );
+        let context = Rc::new(Self::get_context_from_canvas(canvas)?);
 
         context.clear_rect(
             0.0,
@@ -273,26 +286,14 @@ impl Renderer for Workarea {
 
         context.begin_path();
 
-        self.render_selected_tool(&context);
+        self.render_selected_tool(&context)?;
 
-        self.canvas_elements
-            .borrow()
-            .iter()
-            .for_each(|e| e.render(&context));
+        for canvas_element in self.canvas_elements.borrow().iter() {
+            canvas_element.render(context.clone().as_ref())?;
+        }
         self.render_connections(&context);
 
         context.stroke();
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Rect {
-    pub data: (f64, f64, f64, f64),
-}
-
-impl ContextRenderer for Rect {
-    fn render_at_position(&self, ctx: &CanvasRenderingContext2d, _position: (f64, f64)) {
-        let r = &self.data;
-        ctx.rect(r.0, r.1, r.2, r.3);
+        Ok(())
     }
 }

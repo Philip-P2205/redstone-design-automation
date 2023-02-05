@@ -7,3 +7,4 @@ pub mod bar;
 pub mod canvas;
 pub mod logic_gates;
 pub mod connection_point;
+pub mod console_option;

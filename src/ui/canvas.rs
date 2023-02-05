@@ -1,13 +1,14 @@
 use std::marker::PhantomData;
 
+use gloo::utils::window;
 use js_sys::Function;
 use wasm_bindgen::{prelude::Closure, JsCast, JsValue};
 use web_sys::{
-    window, Blob, BlobPropertyBag, CanvasRenderingContext2d, HtmlCanvasElement, HtmlImageElement,
+    Blob, BlobPropertyBag, CanvasRenderingContext2d, HtmlCanvasElement, HtmlImageElement,
 };
 use yew::{html, Children, Component, NodeRef, Properties};
 
-use super::connection_point::{ConnectionPoint};
+use super::{connection_point::ConnectionPoint, console_option::ConsoleOption};
 
 #[derive(Debug, PartialEq, Properties)]
 pub struct Props<T>
@@ -64,12 +65,14 @@ where
         match msg {
             Msg::Render => {
                 let renderer = &ctx.props().renderer;
-                let canvas: HtmlCanvasElement = self.canvas.cast().unwrap();
+                let canvas: HtmlCanvasElement = self
+                    .canvas
+                    .cast()
+                    .expect_to_console("Could not get HtmlCanvasElement");
                 window()
-                    .unwrap()
                     .request_animation_frame(self.callback.as_ref().unchecked_ref())
-                    .unwrap();
-                renderer.render(&canvas);
+                    .expect_to_console("Could not get animation frame");
+                renderer.render(&canvas).unwrap_to_console();
             }
             Msg::Init => {
                 ctx.link().send_message(Msg::Render);
@@ -93,14 +96,18 @@ where
 }
 
 pub trait Renderer: PartialEq {
-    fn render(&self, canvas: &HtmlCanvasElement);
+    fn render(&self, canvas: &HtmlCanvasElement) -> Result<(), JsValue>;
 }
 
 #[dyn_clonable::clonable]
 pub trait ContextRenderer: Clone {
     /// This function renders the element at the specified position.
     /// This function does not have to be implemented and does nothing by default.
-    fn render_at_position(&self, ctx: &CanvasRenderingContext2d, position: (f64, f64));
+    fn render_at_position(
+        &self,
+        ctx: &CanvasRenderingContext2d,
+        position: (f64, f64),
+    ) -> Result<(), JsValue>;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -110,31 +117,38 @@ pub struct SVGImage {
 }
 
 impl SVGImage {
-    pub fn new(svg: &'static str) -> Self {
-        let image = HtmlImageElement::new().unwrap();
+    pub fn new(svg: &'static str) -> Result<Self, JsValue> {
+        let image = HtmlImageElement::new()?;
 
         let array = js_sys::Array::new_with_length(1); // The blob needs an array of the data
         array.set(0, JsValue::from_str(svg));
         let mut options = BlobPropertyBag::new();
         options.type_("image/svg+xml");
-        let blob = Blob::new_with_buffer_source_sequence_and_options(&array, &options).unwrap();
-        let url = web_sys::Url::create_object_url_with_blob(&blob).unwrap();
+        let blob = Blob::new_with_buffer_source_sequence_and_options(&array, &options)?;
+        let url = web_sys::Url::create_object_url_with_blob(&blob)?;
         image.set_src(&url);
 
         let closure: Closure<dyn FnMut()> = Closure::new(move || {
-            web_sys::Url::revoke_object_url(&url).unwrap();
+            web_sys::Url::revoke_object_url(&url)
+                .expect_to_console(&format!("Could not revoke object url for {url}"));
             // info!("Drawing image!", &url);
         });
-        let onload: Function = closure.into_js_value().dyn_into().unwrap();
+        let onload: Function = closure.into_js_value().dyn_into()?;
         image.set_onload(Some(&onload));
-        Self { image, _onload: onload }
+        Ok(Self {
+            image,
+            _onload: onload,
+        })
     }
 }
 
 impl ContextRenderer for SVGImage {
-    fn render_at_position(&self, ctx: &CanvasRenderingContext2d, position: (f64, f64)) {
+    fn render_at_position(
+        &self,
+        ctx: &CanvasRenderingContext2d,
+        position: (f64, f64),
+    ) -> Result<(), JsValue> {
         ctx.draw_image_with_html_image_element(&self.image, position.0, position.1)
-            .unwrap();
     }
 }
 
@@ -167,11 +181,15 @@ impl Element {
             connection_points: connection_points.to_vec(),
         }
     }
-    pub fn render(&self, ctx: &CanvasRenderingContext2d) {
-        self.render_at_position(ctx, self.position);
+    pub fn render(&self, ctx: &CanvasRenderingContext2d) -> Result<(), JsValue> {
+        self.render_at_position(ctx, self.position)
     }
-    pub fn render_at_position(&self, ctx: &CanvasRenderingContext2d, position: (f64, f64)) {
-        self.element.render_at_position(ctx, position);
+    pub fn render_at_position(
+        &self,
+        ctx: &CanvasRenderingContext2d,
+        position: (f64, f64),
+    ) -> Result<(), JsValue> {
+        self.element.render_at_position(ctx, position)
         // self.connection_points
         //     .iter()
         //     .for_each(|e| e.render_at_position(ctx, position))
@@ -190,7 +208,7 @@ impl Element {
             connection_points: self.connection_points.clone(),
         }
     }
-    pub fn get_connection_points(&self) -> &Vec<ConnectionPoint> {
+    pub const fn get_connection_points(&self) -> &Vec<ConnectionPoint> {
         &self.connection_points
     }
 }
