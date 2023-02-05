@@ -14,6 +14,8 @@ wasm-logger = "0.2.0"
 wasm-bindgen = "0.2.83"
 js-sys="*"
 gloo="*"
+dyn-clone="*"
+dyn-clonable="*"
 
 [dependencies.web-sys]
 version = "*"

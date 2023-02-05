@@ -94,8 +94,11 @@ pub trait CanvasRenderer: PartialEq {
     fn render(&self, canvas: &HtmlCanvasElement);
 }
 
-pub trait CanvasContextRenderer {
-    fn render(&self, ctx: &CanvasRenderingContext2d);
+#[dyn_clonable::clonable]
+pub trait CanvasContextRenderer: Clone {
+    /// This function renders the element at the specified position.
+    /// This function does not have to be implemented and does nothing by default.
+    fn render_at_position(&self, ctx: &CanvasRenderingContext2d, position: (f64, f64));
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -127,9 +130,8 @@ impl CanvasSVGImage {
 }
 
 impl CanvasContextRenderer for CanvasSVGImage {
-    fn render(&self, context: &CanvasRenderingContext2d) {
-        context
-            .draw_image_with_html_image_element(&self.image, 10.0, 10.0)
+    fn render_at_position(&self, ctx: &CanvasRenderingContext2d, position: (f64, f64)) {
+        ctx.draw_image_with_html_image_element(&self.image, position.0, position.1)
             .unwrap();
     }
 }
@@ -140,36 +142,38 @@ impl Into<HtmlImageElement> for CanvasSVGImage {
     }
 }
 
+#[derive(Clone)]
 pub struct CanvasElement {
     element: Box<dyn CanvasContextRenderer>,
+    position: (f64, f64),
+}
+
+pub trait AsCanvasElement {
+    fn as_canvas_element(self, position: (f64, f64)) -> CanvasElement;
 }
 
 impl CanvasElement {
+    pub fn new(element: Box<dyn CanvasContextRenderer>, position: (f64, f64)) -> Self {
+        Self { element, position }
+    }
     pub fn render(&self, ctx: &CanvasRenderingContext2d) {
-        self.element.render(ctx)
+        self.element.render_at_position(ctx, self.position)
     }
-}
+    pub fn render_at_position(&self, ctx: &CanvasRenderingContext2d, position: (f64, f64)) {
+        self.element.render_at_position(ctx, position)
+    }
 
-impl<T> From<T> for CanvasElement
-where
-    T: 'static + CanvasContextRenderer,
-{
-    fn from(value: T) -> Self {
+    pub fn set_position(&mut self, position: (f64, f64)) {
+        self.position = position;
+    }
+    pub fn get_position(&self) -> (f64, f64) {
+        self.position
+    }
+    pub fn at_position(&self, position: (f64, f64)) -> Self {
         Self {
-            element: Box::new(value),
+            element: self.element.clone(),
+            position,
         }
-    }
-}
-
-impl From<Box<dyn CanvasContextRenderer>> for CanvasElement {
-    fn from(value: Box<dyn CanvasContextRenderer>) -> Self {
-        Self { element: value }
-    }
-}
-
-impl Clone for CanvasElement {
-    fn clone(&self) -> Self {
-        panic!("Cannot clone CanvasElement!");
     }
 }
 
