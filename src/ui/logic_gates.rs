@@ -1,6 +1,9 @@
 use crate::ui::canvas::{CanvasContextRenderer, CanvasSVGImage};
 
-use super::canvas::{AsCanvasElement, CanvasElement};
+use super::{
+    canvas::{AsCanvasElement, CanvasElement},
+    connection_point::ConnectionPoint,
+};
 
 #[derive(Debug, Clone)]
 pub enum LogicGateType {
@@ -106,6 +109,13 @@ impl LogicGate {
         let image = CanvasSVGImage::new(gate_type.get_svg_string(inputs_inverted));
         LogicGate { gate_type, image }
     }
+    pub fn get_connection_points() -> [ConnectionPoint; 3] {
+        [
+            ConnectionPoint::new(0.0, 25.0, [true, false, false, true]),
+            ConnectionPoint::new(0.0, 75.0, [false, false, true, true]),
+            ConnectionPoint::new(125.0, 50.0, [true, true, true, false]),
+        ]
+    }
 }
 impl CanvasContextRenderer for LogicGate {
     fn render_at_position(&self, ctx: &web_sys::CanvasRenderingContext2d, position: (f64, f64)) {
@@ -138,6 +148,6 @@ impl From<LogicGateType> for LogicGate {
 
 impl AsCanvasElement for LogicGate {
     fn as_canvas_element(self, position: (f64, f64)) -> CanvasElement {
-        CanvasElement::new(Box::new(self), position)
+        CanvasElement::new(Box::new(self), position, &Self::get_connection_points())
     }
 }

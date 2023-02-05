@@ -5,12 +5,13 @@ use std::{
 
 use js_sys::Function;
 use stylist::style;
-use wasm_bindgen::{prelude::Closure, JsCast};
+use wasm_bindgen::{prelude::Closure, JsCast, JsValue};
 use web_sys::{window, CanvasRenderingContext2d};
 use yew::{html, Classes, Component, Properties};
 
 use super::{
     canvas::{AsCanvasElement, Canvas, CanvasContextRenderer, CanvasElement, CanvasRenderer},
+    connection_point::ConnectionPoint,
     logic_gates::*,
 };
 
@@ -91,6 +92,7 @@ struct Workarea {
     onclick: Function,
     onmousemove: Function,
     canvas_elements: Rc<RefCell<Vec<CanvasElement>>>,
+    connection_points: Rc<RefCell<Vec<ConnectionPoint>>>,
     selected_tool: Rc<RefCell<Option<CanvasElement>>>,
 }
 
@@ -108,17 +110,25 @@ impl Workarea {
         let selected_tool: Rc<RefCell<Option<CanvasElement>>> = Rc::new(RefCell::new(Some(
             LogicGate::new(LogicGateType::And).as_canvas_element((0.0, 0.0)),
         )));
+        let connection_points = Rc::new(RefCell::new(Vec::new()));
 
         let onclick = {
             let grid_position = grid_position.clone();
             let canvas_elements = canvas_elements.clone();
             let selected_tool = selected_tool.clone();
+            let connection_points = connection_points.clone();
             let closure: Closure<dyn FnMut(web_sys::MouseEvent)> =
                 Closure::new(move |_event: web_sys::MouseEvent| {
                     if let Some(tool) = selected_tool.borrow().as_ref() {
                         canvas_elements
                             .borrow_mut()
                             .push(tool.at_position(grid_position.get()));
+
+                        for cp in tool.get_connection_points() {
+                            connection_points
+                                .borrow_mut()
+                                .push(cp.get_absolute_at_position(grid_position.get()))
+                        }
                     }
                 });
             closure.into_js_value().dyn_into().unwrap()
@@ -136,16 +146,16 @@ impl Workarea {
             closure.into_js_value().dyn_into().unwrap()
         };
         {
-            canvas_elements.borrow_mut().push(
-                LogicGate::new_with_inverted_inputs(LogicGateType::Nand, (true, true))
-                    .as_canvas_element((0.0, 0.0)),
-            );
-            canvas_elements
-                .borrow_mut()
-                .push(LogicGate::new(LogicGateType::Nor).as_canvas_element((100.0, 0.0)));
-            canvas_elements
-                .borrow_mut()
-                .push(LogicGate::new(LogicGateType::And).as_canvas_element((200.0, 0.0)));
+            // canvas_elements.borrow_mut().push(
+            //     LogicGate::new_with_inverted_inputs(LogicGateType::Nand, (true, true))
+            //         .as_canvas_element((0.0, 0.0)),
+            // );
+            // canvas_elements
+            //     .borrow_mut()
+            //     .push(LogicGate::new(LogicGateType::Nor).as_canvas_element((100.0, 0.0)));
+            // canvas_elements
+            //     .borrow_mut()
+            //     .push(LogicGate::new(LogicGateType::And).as_canvas_element((200.0, 0.0)));
         }
 
         Workarea {
@@ -158,6 +168,7 @@ impl Workarea {
             onmousemove,
             canvas_elements,
             selected_tool,
+            connection_points,
         }
     }
 
@@ -182,9 +193,61 @@ impl Workarea {
     fn render_selected_tool(&self, context: &CanvasRenderingContext2d) {
         if let Some(tool) = &self.selected_tool.borrow().as_ref() {
             tool.render_at_position(context, self.grid_position.clone().get());
+            for cp in tool.get_connection_points() {
+                let cp1 = &cp.get_absolute_at_position(self.grid_position.clone().get());
+                for cp2 in self.connection_points.borrow().iter() {
+                    if Self::check_connection_points(cp1, cp2) {
+                        context.begin_path();
+                        context.set_stroke_style(&JsValue::from_str("black"));
+                        context.move_to(cp1.get_position_x(), cp1.get_position_y());
+                        context.line_to(cp2.get_position_x(), cp2.get_position_y());
+                        context.stroke();
+                    }
+                }
+            }
         }
     }
+    fn render_connections(&self, context: &CanvasRenderingContext2d) {
+        for cp1 in self.connection_points.borrow().iter() {
+            for cp2 in self.connection_points.borrow().iter() {
+                if Self::check_connection_points(cp1, cp2) {
+                    context.begin_path();
+                    context.set_stroke_style(&JsValue::from_str("black"));
+                    context.move_to(cp1.get_position_x(), cp1.get_position_y());
+                    context.line_to(cp2.get_position_x(), cp2.get_position_y());
+                    context.stroke();
+                }
+            }
+        }
+    }
+    fn check_connection_points(cp1: &ConnectionPoint, cp2: &ConnectionPoint) -> bool {
+        if cp1 == cp2 {
+            return false;
+        } else if cp1.get_position_x() == cp2.get_position_x() {
+            if cp1.get_position_y() > cp2.get_position_y()
+                && cp1.get_direction_y_neg()
+                && cp2.get_direction_y_pos()
+                || cp1.get_position_y() < cp2.get_position_y()
+                    && cp1.get_direction_y_pos()
+                    && cp2.get_direction_y_neg()
+            {
+                return true;
+            }
+        } else if cp1.get_position_y() == cp2.get_position_y() {
+            if cp1.get_position_x() > cp2.get_position_x()
+                && cp1.get_direction_x_neg()
+                && cp2.get_direction_x_pos()
+                || cp1.get_position_x() < cp2.get_position_x()
+                    && cp1.get_direction_x_pos()
+                    && cp2.get_direction_x_neg()
+            {
+                return true;
+            }
+        }
+        false
+    }
 }
+
 impl CanvasRenderer for Workarea {
     fn render(&self, canvas: &web_sys::HtmlCanvasElement) {
         let _init = self.initialized.get();
@@ -211,6 +274,7 @@ impl CanvasRenderer for Workarea {
             .borrow()
             .iter()
             .for_each(|e| e.render(&context));
+        self.render_connections(&context);
 
         context.stroke();
     }

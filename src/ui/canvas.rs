@@ -7,6 +7,8 @@ use web_sys::{
 };
 use yew::{html, Children, Component, NodeRef, Properties};
 
+use super::connection_point::{ConnectionPoint};
+
 #[derive(Debug, PartialEq, Properties)]
 pub struct CanvasProps<T>
 where
@@ -146,6 +148,7 @@ impl Into<HtmlImageElement> for CanvasSVGImage {
 pub struct CanvasElement {
     element: Box<dyn CanvasContextRenderer>,
     position: (f64, f64),
+    connection_points: Vec<ConnectionPoint>,
 }
 
 pub trait AsCanvasElement {
@@ -153,14 +156,25 @@ pub trait AsCanvasElement {
 }
 
 impl CanvasElement {
-    pub fn new(element: Box<dyn CanvasContextRenderer>, position: (f64, f64)) -> Self {
-        Self { element, position }
+    pub fn new(
+        element: Box<dyn CanvasContextRenderer>,
+        position: (f64, f64),
+        connection_points: &[ConnectionPoint],
+    ) -> Self {
+        Self {
+            element,
+            position,
+            connection_points: connection_points.to_vec(),
+        }
     }
     pub fn render(&self, ctx: &CanvasRenderingContext2d) {
-        self.element.render_at_position(ctx, self.position)
+        self.render_at_position(ctx, self.position);
     }
     pub fn render_at_position(&self, ctx: &CanvasRenderingContext2d, position: (f64, f64)) {
-        self.element.render_at_position(ctx, position)
+        self.element.render_at_position(ctx, position);
+        // self.connection_points
+        //     .iter()
+        //     .for_each(|e| e.render_at_position(ctx, position))
     }
 
     pub fn set_position(&mut self, position: (f64, f64)) {
@@ -173,7 +187,11 @@ impl CanvasElement {
         Self {
             element: self.element.clone(),
             position,
+            connection_points: self.connection_points.clone(),
         }
+    }
+    pub fn get_connection_points(&self) -> &Vec<ConnectionPoint> {
+        &self.connection_points
     }
 }
 
