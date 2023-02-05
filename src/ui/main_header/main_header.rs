@@ -9,16 +9,16 @@ use crate::ui::bar::BarHorizontal;
 
 use super::{header_menu::HeaderMenu, menu_option::MenuOption};
 
-pub enum MainHeaderMsg {
-    HeaderClicked(HeaderOptionType),
-    HeaderHovered(HeaderOptionType),
-    HeaderClosed,
+pub enum Msg {
+    Clicked(HeaderOptionType),
+    Hovered(HeaderOptionType),
+    Closed,
 }
 
-#[derive(Debug, Clone, PartialEq, Properties)]
-pub struct MainHeaderProps {
+#[derive(Debug, Clone, PartialEq, Eq, Properties)]
+pub struct Props {
     #[prop_or_default]
-    pub class: Classes
+    pub class: Classes,
 }
 
 pub struct MainHeader {
@@ -26,8 +26,8 @@ pub struct MainHeader {
 }
 
 impl Component for MainHeader {
-    type Message = MainHeaderMsg;
-    type Properties = MainHeaderProps;
+    type Message = Msg;
+    type Properties = Props;
 
     fn create(_ctx: &yew::Context<Self>) -> Self {
         Self {
@@ -36,8 +36,8 @@ impl Component for MainHeader {
     }
     fn update(&mut self, _ctx: &yew::Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            MainHeaderMsg::HeaderClicked(header) => {
-                if self.is_header_active(header.clone()) {
+            Msg::Clicked(header) => {
+                if self.is_header_active(header) {
                     self.header_active = None;
                     debug!("New active header: {:?}", self.header_active);
                 } else {
@@ -46,7 +46,7 @@ impl Component for MainHeader {
                 }
                 true
             }
-            MainHeaderMsg::HeaderHovered(header) => {
+            Msg::Hovered(header) => {
                 if self.header_active.is_some() {
                     self.header_active = Some(header);
                     true
@@ -54,12 +54,13 @@ impl Component for MainHeader {
                     false
                 }
             }
-            MainHeaderMsg::HeaderClosed => {
+            Msg::Closed => {
                 self.header_active = None;
                 true
             }
         }
     }
+
     fn view(&self, ctx: &yew::Context<Self>) -> yew::Html {
         let classes = ctx.props().class.clone();
         let header = style!(
@@ -87,8 +88,8 @@ impl Component for MainHeader {
         )
         .unwrap();
 
-        let onclick = ctx.link().callback(MainHeaderMsg::HeaderClicked);
-        let onhover = ctx.link().callback(MainHeaderMsg::HeaderHovered);
+        let onclick = ctx.link().callback(Msg::Clicked);
+        let onhover = ctx.link().callback(Msg::Hovered);
 
         html! {
             <div class={ classes }>
@@ -96,11 +97,11 @@ impl Component for MainHeader {
                     if self.header_active.is_some() {
                         // FIXME: This div makes it impossible to interact with the rest of the program as long as it is active.
                         // This div sets the active_header to none if you click outside of the MainHeader/HeaderMenu
-                        <div class={ option_cancel } onclick={ ctx.link().callback(|_| MainHeaderMsg::HeaderClosed) }></div>
+                        <div class={ option_cancel } onclick={ ctx.link().callback(|_| Msg::Closed) }></div>
                     }
 
                 //TODO: Include logo
-                    <HeaderOption typ={ HeaderOptionType::File } onclick={ onclick.clone() } onhover={ onhover.clone() } active_header={ self.header_active.clone() } />
+                    <HeaderOption typ={ HeaderOptionType::File } onclick={ onclick.clone() } onhover={ onhover.clone() } active_header={ self.header_active } />
                         <HeaderMenu width="200px" position_x="0px" active={ self.is_header_active(HeaderOptionType::File) }>
                             <MenuOption text="New" shortcut="Ctrl+N"/>
                             <MenuOption text="Open" shortcut="Ctrl+O"/>
@@ -117,7 +118,7 @@ impl Component for MainHeader {
                             <MenuOption text="Exit" shortcut="Alt+F4"/>
                         </HeaderMenu>
 
-                    <HeaderOption typ={ HeaderOptionType::Edit } onclick={ onclick.clone() } onhover={ onhover.clone() } active_header={ self.header_active.clone() } />
+                    <HeaderOption typ={ HeaderOptionType::Edit } onclick={ onclick.clone() } onhover={ onhover.clone() } active_header={ self.header_active } />
                     <HeaderMenu width="200px" position_x="52px" active={ self.is_header_active(HeaderOptionType::Edit) }>
                         <MenuOption text="Undo" shortcut="Ctrl+Z" />
                         <MenuOption text="Redo" shortcut="Ctrl+Y" />
@@ -129,7 +130,7 @@ impl Component for MainHeader {
                         <MenuOption text="Delete" shortcut="Del" />
                     </HeaderMenu>
 
-                    <HeaderOption typ={ HeaderOptionType::View } onclick={ onclick.clone() } onhover={ onhover.clone() } active_header={ self.header_active.clone() } />
+                    <HeaderOption typ={ HeaderOptionType::View } onclick={ onclick.clone() } onhover={ onhover.clone() } active_header={ self.header_active } />
                     <HeaderMenu width="200px" position_x="95px" active={ self.is_header_active(HeaderOptionType::View) }>
                         <MenuOption text="Zoom In" />
                         <MenuOption text="Zoom Out" />
@@ -137,7 +138,7 @@ impl Component for MainHeader {
                         <MenuOption text="Show/Hide Grid" />
                     </HeaderMenu>
 
-                    <HeaderOption typ={ HeaderOptionType::Tools } onclick={ onclick.clone() } onhover={ onhover.clone() } active_header={ self.header_active.clone() } />
+                    <HeaderOption typ={ HeaderOptionType::Tools } onclick={ onclick.clone() } onhover={ onhover.clone() } active_header={ self.header_active } />
                     <HeaderMenu width="250px" position_x="146px" active={ self.is_header_active(HeaderOptionType::Tools) }>
                         <MenuOption icon_id={ IconId::LucideRotateCcw } text="Rotate Left" shortcut="Ctrl+R"/>
                         <MenuOption text="Rotate Right" shortcut="Ctrl+Shift+R"/>
@@ -154,8 +155,8 @@ impl Component for MainHeader {
                         <MenuOption text="Pause At Change" disabled=false />
                     </HeaderMenu>
 
-                    <HeaderOption disabled=true typ={ HeaderOptionType::Options } onclick={ onclick.clone() } onhover={ onhover.clone() } active_header={ self.header_active.clone() } />
-                    <HeaderOption disabled=true typ={ HeaderOptionType::Help } onclick={ onclick.clone() } onhover={ onhover.clone() } active_header={ self.header_active.clone() } />
+                    <HeaderOption disabled=true typ={ HeaderOptionType::Options } onclick={ onclick.clone() } onhover={ onhover.clone() } active_header={ self.header_active } />
+                    <HeaderOption disabled=true typ={ HeaderOptionType::Help } onclick={ onclick.clone() } onhover={ onhover.clone() } active_header={ self.header_active } />
                 </div>
             </div>
         }
@@ -164,10 +165,10 @@ impl Component for MainHeader {
 
 impl MainHeader {
     fn is_header_active(&self, header: HeaderOptionType) -> bool {
-        self.header_active.clone().map_or(false, |h| h == header)
+        self.header_active.map_or(false, |h| h == header)
     }
 }
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum HeaderOptionType {
     File,
     Edit,
@@ -178,7 +179,7 @@ pub enum HeaderOptionType {
 }
 impl Display for HeaderOptionType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "{self:?}")
     }
 }
 
@@ -204,7 +205,11 @@ impl Component for HeaderOption {
         Self {}
     }
     fn view(&self, ctx: &yew::Context<Self>) -> yew::Html {
-        let active = ctx.props().active_header.as_ref().map_or(false, |h|h.eq(&ctx.props().typ));
+        let active = ctx
+            .props()
+            .active_header
+            .as_ref()
+            .map_or(false, |h| h.eq(&ctx.props().typ));
 
         let style = style!(
             r#"
@@ -228,7 +233,13 @@ impl Component for HeaderOption {
                 "pointer"
             },
             background = if active { "#f5f5f5" } else { "inherit" },
-            color = if ctx.props().disabled { "gray" } else {if active { "#7988ff" } else { "inherit" }},
+            color = if ctx.props().disabled {
+                "gray"
+            } else if active {
+                "#7988ff"
+            } else {
+                "inherit"
+            },
             background_hover = if ctx.props().disabled {
                 "inherit"
             } else {
@@ -241,10 +252,9 @@ impl Component for HeaderOption {
             }
         )
         .unwrap();
-        let typ = ctx.props().typ.clone();
-        let onclick = ctx.props().onclick.reform(move |_| typ.clone());
-        let typ = ctx.props().typ.clone();
-        let onmouseover = ctx.props().onhover.reform(move |_| typ.clone());
+        let typ = ctx.props().typ;
+        let onclick = ctx.props().onclick.reform(move |_| typ);
+        let onmouseover = ctx.props().onhover.reform(move |_| typ);
         html! {
             <>
                 <span class={ style } { onclick } { onmouseover }>{&ctx.props().typ}</span>

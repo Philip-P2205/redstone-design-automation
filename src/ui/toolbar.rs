@@ -3,8 +3,8 @@ use yew::{html, html_nested, virtual_dom::VChild, Callback, Classes, Component, 
 use yew_icons::{Icon, IconId};
 
 use super::bar::BarVertical;
-#[derive(Debug, Clone, PartialEq, Properties)]
-pub struct ToolbarProps {
+#[derive(Debug, Clone, PartialEq, Eq, Properties)]
+pub struct Props {
     #[prop_or_default]
     pub class: Classes
 }
@@ -12,7 +12,7 @@ pub struct Toolbar {}
 
 impl Component for Toolbar {
     type Message = ();
-    type Properties = ToolbarProps;
+    type Properties = Props;
 
     fn create(_ctx: &yew::Context<Self>) -> Self {
         Self {}
@@ -99,14 +99,15 @@ impl Toolbar {
         classes.push(tool);
 
         if onclick.is_none() || !active {
-            classes.push(deactivated)
+            classes.push(deactivated);
         }
 
         html_nested! { <Icon class={ classes } { icon_id } { title } { onclick }/> }
     }
 
+    #[allow(clippy::match_same_arms)]
     ///This is a utility function providing the different onlick functions for the tool icons
-    fn get_onclick_for_tool(icon_id: IconId) -> Option<Callback<MouseEvent>> {
+    const fn get_onclick_for_tool(icon_id: IconId) -> Option<Callback<MouseEvent>> {
         match icon_id {
             //Some(Callback::from(|_| {}))
             IconId::LucideFilePlus2 => None,

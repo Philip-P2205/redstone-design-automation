@@ -1,2 +1,4 @@
 pub mod redstone_component;
-pub mod component_list;
+#[allow(clippy::module_inception)]
+mod component_list;
+pub use component_list::*;

@@ -2,7 +2,7 @@ use std::f64::consts::PI;
 
 use wasm_bindgen::JsValue;
 
-use super::canvas::CanvasContextRenderer;
+use super::canvas::ContextRenderer;
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct ConnectionPoint {
@@ -14,43 +14,43 @@ pub struct ConnectionPoint {
 }
 
 impl ConnectionPoint {
-    pub fn new(x: f64, y: f64, directions: [bool; 4]) -> Self {
+    pub const fn new(x: f64, y: f64, directions: [bool; 4]) -> Self {
         Self { x, y, directions }
     }
-    pub fn get_position(&self) -> (f64, f64) {
-        (self.x, self.y)
-    }
-    pub fn get_position_x(&self) -> f64 {
+    // pub fn get_position(&self) -> (f64, f64) {
+    //     (self.x, self.y)
+    // }
+    pub const fn get_position_x(&self) -> f64 {
         self.x
     }
-    pub fn get_position_y(&self) -> f64 {
+    pub const fn get_position_y(&self) -> f64 {
         self.y
     }
-    pub fn get_directions(&self) -> &[bool; 4] {
-        &self.directions
-    }
-    pub fn get_direction_x_pos(&self) -> bool {
+    // pub fn get_directions(&self) -> &[bool; 4] {
+    //     &self.directions
+    // }
+    pub const fn get_direction_x_pos(&self) -> bool {
         self.directions[1]
     }
-    pub fn get_direction_x_neg(&self) -> bool {
+    pub const fn get_direction_x_neg(&self) -> bool {
         self.directions[3]
     }
-    pub fn get_direction_y_pos(&self) -> bool {
-        self.directions[3]
+    pub const fn get_direction_y_pos(&self) -> bool {
+        self.directions[2]
     }
-    pub fn get_direction_y_neg(&self) -> bool {
+    pub const fn get_direction_y_neg(&self) -> bool {
         self.directions[0]
     }
     pub fn get_absolute_at_position(&self, position: (f64, f64)) -> Self {
         Self {
             x: self.x + position.0,
             y: self.y + position.1,
-            directions: self.directions.clone(),
+            directions: self.directions,
         }
     }
 }
 
-impl CanvasContextRenderer for ConnectionPoint {
+impl ContextRenderer for ConnectionPoint {
     fn render_at_position(&self, ctx: &web_sys::CanvasRenderingContext2d, position: (f64, f64)) {
         ctx.begin_path();
         ctx.set_stroke_style(&JsValue::from_str("red"));

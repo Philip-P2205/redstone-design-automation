@@ -6,8 +6,8 @@ use yew::{html, Component, Properties, Classes};
 
 use super::redstone_component::RedstoneComponent;
 
-#[derive(Debug, Clone, PartialEq, Properties)]
-pub struct ComponentListProps {
+#[derive(Debug, Clone, PartialEq, Eq, Properties)]
+pub struct Props {
     #[prop_or_default]
     pub class: Classes
 }
@@ -16,7 +16,7 @@ pub struct ComponentList {}
 
 impl Component for ComponentList {
     type Message = ();
-    type Properties = ComponentListProps;
+    type Properties = Props;
 
     fn create(_ctx: &yew::Context<Self>) -> Self {
         Self {}

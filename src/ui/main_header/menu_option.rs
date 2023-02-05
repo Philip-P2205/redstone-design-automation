@@ -4,7 +4,7 @@ use yew::{function_component, html, Callback, MouseEvent, Properties};
 use yew_icons::IconId;
 
 #[derive(Debug, Clone, PartialEq, Properties)]
-pub struct MenuOptionProperties {
+pub struct Props {
     pub text: &'static str,
     #[prop_or(None)]
     pub icon_id: Option<IconId>,
@@ -16,7 +16,7 @@ pub struct MenuOptionProperties {
     pub disabled: bool,
 }
 #[function_component(MenuOption)]
-pub fn menu_option(props: &MenuOptionProperties) -> yew::Html {
+pub fn menu_option(props: &Props) -> yew::Html {
     let style_outer = style!(
         r#"
         padding: 0px 10px;
@@ -67,7 +67,7 @@ pub fn menu_option(props: &MenuOptionProperties) -> yew::Html {
     "#
     )
     .unwrap();
-    let callback = props.callback.clone().unwrap_or(Callback::from(|_| {
+    let callback = props.callback.clone().unwrap_or_else(|| Callback::from(|_| {
         error!(
             r#"Missing callback for MenuOption "{}"!"#,
             props.text.to_owned()

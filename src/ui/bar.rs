@@ -1,8 +1,8 @@
 use stylist::style;
 use yew::{function_component, html, Html, Properties};
 
-#[derive(Debug, Clone, PartialEq, Properties)]
-pub struct BarHorizontalProps {
+#[derive(Debug, Clone, PartialEq, Eq, Properties)]
+pub struct HorizontalProps {
     /// The width of the line
     #[prop_or("1px")]
     pub thickness: &'static str,
@@ -23,8 +23,8 @@ pub struct BarHorizontalProps {
     pub color: &'static str,
 }
 
-#[derive(Debug, Clone, PartialEq, Properties)]
-pub struct BarVerticalProps {
+#[derive(Debug, Clone, PartialEq, Eq, Properties)]
+pub struct VerticalProps {
     /// The width of the line
     #[prop_or("1px")]
     pub thickness: &'static str,
@@ -46,7 +46,7 @@ pub struct BarVerticalProps {
 }
 
 #[function_component]
-pub fn BarHorizontal(props: &BarHorizontalProps) -> Html {
+pub fn BarHorizontal(props: &HorizontalProps) -> Html {
     let container_style = style!(
         r#"
         background: none;
@@ -83,7 +83,7 @@ pub fn BarHorizontal(props: &BarHorizontalProps) -> Html {
 }
 
 #[function_component]
-pub fn BarVertical(props: &BarVerticalProps) -> Html {
+pub fn BarVertical(props: &VerticalProps) -> Html {
     let container_style = style!(
         r#"
         background: none;

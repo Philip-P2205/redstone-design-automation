@@ -10,30 +10,30 @@ use web_sys::{window, CanvasRenderingContext2d};
 use yew::{html, Classes, Component, Properties};
 
 use super::{
-    canvas::{AsCanvasElement, Canvas, CanvasContextRenderer, CanvasElement, CanvasRenderer},
+    canvas::{Canvas, ContextRenderer, Element, IntoCanvasElement, Renderer},
     connection_point::ConnectionPoint,
-    logic_gates::*,
+    logic_gates::{LogicGate, LogicGateType},
 };
 
 const GRID_SIZE: f64 = 25.0;
-const GRID_SIZE_PROPS: &'static str = "25px";
+const GRID_SIZE_PROPS: &str = "25px";
 
 pub struct Workspace {}
 
 #[derive(Clone, PartialEq, Properties)]
-pub struct WorkspaceProps {
+pub struct Props {
     #[prop_or_default]
     pub class: Classes,
     /// The size of the grid
     #[prop_or(GRID_SIZE_PROPS)]
     pub grid_size: &'static str,
     #[prop_or_default]
-    pub selected_tool: Option<CanvasElement>,
+    pub selected_tool: Option<Element>,
 }
 
 impl Component for Workspace {
     type Message = ();
-    type Properties = WorkspaceProps;
+    type Properties = Props;
 
     fn create(_ctx: &yew::Context<Self>) -> Self {
         Self {}
@@ -84,31 +84,32 @@ impl Component for Workspace {
 
 #[derive(Clone, PartialEq)]
 struct Workarea {
-    _mouse_position: Rc<Cell<(i32, i32)>>,
+    mouse_position: Rc<Cell<(i32, i32)>>,
     grid_position: Rc<Cell<(f64, f64)>>,
     width: Rc<Cell<i32>>,
     height: Rc<Cell<i32>>,
     initialized: Cell<bool>,
     onclick: Function,
     onmousemove: Function,
-    canvas_elements: Rc<RefCell<Vec<CanvasElement>>>,
+    canvas_elements: Rc<RefCell<Vec<Element>>>,
     connection_points: Rc<RefCell<Vec<ConnectionPoint>>>,
-    selected_tool: Rc<RefCell<Option<CanvasElement>>>,
+    selected_tool: Rc<RefCell<Option<Element>>>,
 }
 
 impl Workarea {
-    fn new() -> Workarea {
+    #[allow(clippy::cast_possible_truncation)]
+    fn new() -> Self {
         let width = Rc::new(Cell::new(
             window().unwrap().inner_width().unwrap().as_f64().unwrap() as i32,
         ));
         let height = Rc::new(Cell::new(
             window().unwrap().inner_height().unwrap().as_f64().unwrap() as i32,
         ));
-        let _mouse_position = Rc::new(Cell::new((0, 0)));
+        let mouse_position = Rc::new(Cell::new((0, 0)));
         let grid_position = Rc::new(Cell::new((0.0, 0.0)));
-        let canvas_elements: Rc<RefCell<Vec<CanvasElement>>> = Rc::new(RefCell::new(Vec::new()));
-        let selected_tool: Rc<RefCell<Option<CanvasElement>>> = Rc::new(RefCell::new(Some(
-            LogicGate::new(LogicGateType::And).as_canvas_element((0.0, 0.0)),
+        let canvas_elements: Rc<RefCell<Vec<Element>>> = Rc::new(RefCell::new(Vec::new()));
+        let selected_tool: Rc<RefCell<Option<Element>>> = Rc::new(RefCell::new(Some(
+            LogicGate::new(LogicGateType::And).into_canvas_element((0.0, 0.0)),
         )));
         let connection_points = Rc::new(RefCell::new(Vec::new()));
 
@@ -127,19 +128,18 @@ impl Workarea {
                         for cp in tool.get_connection_points() {
                             connection_points
                                 .borrow_mut()
-                                .push(cp.get_absolute_at_position(grid_position.get()))
+                                .push(cp.get_absolute_at_position(grid_position.get()));
                         }
                     }
                 });
             closure.into_js_value().dyn_into().unwrap()
         };
         let onmousemove = {
-            let _mouse_position = _mouse_position.clone();
             let grid_position = grid_position.clone();
             let closure: Closure<dyn FnMut(web_sys::MouseEvent)> =
                 Closure::new(move |event: web_sys::MouseEvent| {
-                    let x = ((event.client_x() - 247) as f64 / GRID_SIZE).round() * GRID_SIZE;
-                    let y = ((event.client_y() - 97) as f64 / GRID_SIZE).round() * GRID_SIZE;
+                    let x = (f64::from(event.client_x() - 247) / GRID_SIZE).round() * GRID_SIZE;
+                    let y = (f64::from(event.client_y() - 97) / GRID_SIZE).round() * GRID_SIZE;
                     // _mouse_position.replace((event.client_x() - 247, event.client_y() - 97));
                     grid_position.replace((x, y));
                 });
@@ -158,8 +158,8 @@ impl Workarea {
             //     .push(LogicGate::new(LogicGateType::And).as_canvas_element((200.0, 0.0)));
         }
 
-        Workarea {
-            _mouse_position,
+        Self {
+            mouse_position,
             grid_position,
             width,
             height,
@@ -172,9 +172,11 @@ impl Workarea {
         }
     }
 
+    #[allow(clippy::cast_possible_truncation)]
     fn get_width() -> i32 {
         window().unwrap().inner_width().unwrap().as_f64().unwrap() as i32 - 247
     }
+    #[allow(clippy::cast_possible_truncation)]
     fn get_height() -> i32 {
         window().unwrap().inner_height().unwrap().as_f64().unwrap() as i32 - 97
     }
@@ -220,35 +222,33 @@ impl Workarea {
             }
         }
     }
+
+    #[allow(clippy::cast_possible_truncation)]
     fn check_connection_points(cp1: &ConnectionPoint, cp2: &ConnectionPoint) -> bool {
         if cp1 == cp2 {
             return false;
-        } else if cp1.get_position_x() == cp2.get_position_x() {
-            if cp1.get_position_y() > cp2.get_position_y()
+        } else if (cp1.get_position_x() as i32 == cp2.get_position_x() as i32
+            && (cp1.get_position_y() > cp2.get_position_y()
                 && cp1.get_direction_y_neg()
                 && cp2.get_direction_y_pos()
                 || cp1.get_position_y() < cp2.get_position_y()
                     && cp1.get_direction_y_pos()
-                    && cp2.get_direction_y_neg()
-            {
-                return true;
-            }
-        } else if cp1.get_position_y() == cp2.get_position_y() {
-            if cp1.get_position_x() > cp2.get_position_x()
-                && cp1.get_direction_x_neg()
-                && cp2.get_direction_x_pos()
-                || cp1.get_position_x() < cp2.get_position_x()
-                    && cp1.get_direction_x_pos()
-                    && cp2.get_direction_x_neg()
-            {
-                return true;
-            }
+                    && cp2.get_direction_y_neg()))
+            || (cp1.get_position_y() as i32 == cp2.get_position_y() as i32
+                && (cp1.get_position_x() > cp2.get_position_x()
+                    && cp1.get_direction_x_neg()
+                    && cp2.get_direction_x_pos()
+                    || cp1.get_position_x() < cp2.get_position_x()
+                        && cp1.get_direction_x_pos()
+                        && cp2.get_direction_x_neg()))
+        {
+            return true;
         }
         false
     }
 }
 
-impl CanvasRenderer for Workarea {
+impl Renderer for Workarea {
     fn render(&self, canvas: &web_sys::HtmlCanvasElement) {
         let _init = self.initialized.get();
         if !self.initialized.get() {
@@ -263,7 +263,12 @@ impl CanvasRenderer for Workarea {
                 .unwrap(),
         );
 
-        context.clear_rect(0.0, 0.0, canvas.width() as f64, canvas.height() as f64);
+        context.clear_rect(
+            0.0,
+            0.0,
+            f64::from(canvas.width()),
+            f64::from(canvas.height()),
+        );
         // context.restore();
 
         context.begin_path();
@@ -285,9 +290,9 @@ pub struct Rect {
     pub data: (f64, f64, f64, f64),
 }
 
-impl CanvasContextRenderer for Rect {
+impl ContextRenderer for Rect {
     fn render_at_position(&self, ctx: &CanvasRenderingContext2d, _position: (f64, f64)) {
         let r = &self.data;
-        ctx.rect(r.0, r.1, r.2, r.3)
+        ctx.rect(r.0, r.1, r.2, r.3);
     }
 }

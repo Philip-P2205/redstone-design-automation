@@ -2,8 +2,8 @@ use stylist::style;
 use yew::{html, Component, Properties};
 use yew_icons::{Icon, IconId};
 
-#[derive(Debug, Clone, PartialEq, Properties)]
-pub struct RedstoneComponentProps {
+#[derive(Debug, Clone, PartialEq, Eq, Properties)]
+pub struct Props {
     #[prop_or(IconId::LucideFileImage)]
     icon_id: IconId,
     #[prop_or("Component")]
@@ -14,7 +14,7 @@ pub struct RedstoneComponent;
 
 impl Component for RedstoneComponent {
     type Message = ();
-    type Properties = RedstoneComponentProps;
+    type Properties = Props;
 
     fn create(_ctx: &yew::Context<Self>) -> Self {
         Self

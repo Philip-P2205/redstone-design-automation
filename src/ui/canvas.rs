@@ -10,9 +10,9 @@ use yew::{html, Children, Component, NodeRef, Properties};
 use super::connection_point::{ConnectionPoint};
 
 #[derive(Debug, PartialEq, Properties)]
-pub struct CanvasProps<T>
+pub struct Props<T>
 where
-    T: CanvasRenderer,
+    T: Renderer,
 {
     #[prop_or_default]
     pub style: &'static str,
@@ -25,14 +25,14 @@ where
     pub renderer: Box<T>,
 }
 
-pub enum CanvasMsg {
+pub enum Msg {
     Init,
     Render,
 }
 
 pub struct Canvas<T>
 where
-    T: CanvasRenderer,
+    T: Renderer,
 {
     canvas: NodeRef,
     callback: Closure<dyn FnMut()>,
@@ -41,28 +41,28 @@ where
 
 impl<T> Component for Canvas<T>
 where
-    T: CanvasRenderer + 'static,
+    T: Renderer + 'static,
 {
-    type Message = CanvasMsg;
-    type Properties = CanvasProps<T>;
+    type Message = Msg;
+    type Properties = Props<T>;
     fn create(ctx: &yew::Context<Self>) -> Self {
         let link = ctx.link().clone();
-        let cb: Box<dyn FnMut()> = Box::new(move || link.send_message(CanvasMsg::Render));
+        let cb: Box<dyn FnMut()> = Box::new(move || link.send_message(Msg::Render));
 
         let cb = Closure::wrap(cb);
 
-        ctx.link().send_message(CanvasMsg::Init);
+        ctx.link().send_message(Msg::Init);
 
         Self {
             canvas: NodeRef::default(),
             callback: cb,
-            _p: Default::default(),
+            _p: PhantomData::default(),
         }
     }
 
     fn update(&mut self, ctx: &yew::Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            CanvasMsg::Render => {
+            Msg::Render => {
                 let renderer = &ctx.props().renderer;
                 let canvas: HtmlCanvasElement = self.canvas.cast().unwrap();
                 window()
@@ -71,8 +71,8 @@ where
                     .unwrap();
                 renderer.render(&canvas);
             }
-            CanvasMsg::Init => {
-                ctx.link().send_message(CanvasMsg::Render);
+            Msg::Init => {
+                ctx.link().send_message(Msg::Render);
             }
         }
         false
@@ -92,25 +92,25 @@ where
     }
 }
 
-pub trait CanvasRenderer: PartialEq {
+pub trait Renderer: PartialEq {
     fn render(&self, canvas: &HtmlCanvasElement);
 }
 
 #[dyn_clonable::clonable]
-pub trait CanvasContextRenderer: Clone {
+pub trait ContextRenderer: Clone {
     /// This function renders the element at the specified position.
     /// This function does not have to be implemented and does nothing by default.
     fn render_at_position(&self, ctx: &CanvasRenderingContext2d, position: (f64, f64));
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct CanvasSVGImage {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SVGImage {
     pub image: HtmlImageElement,
     _onload: Function,
 }
 
-impl CanvasSVGImage {
-    pub fn new(svg: &'static str) -> CanvasSVGImage {
+impl SVGImage {
+    pub fn new(svg: &'static str) -> Self {
         let image = HtmlImageElement::new().unwrap();
 
         let array = js_sys::Array::new_with_length(1); // The blob needs an array of the data
@@ -125,39 +125,39 @@ impl CanvasSVGImage {
             web_sys::Url::revoke_object_url(&url).unwrap();
             // info!("Drawing image!", &url);
         });
-        let _onload: Function = closure.into_js_value().dyn_into().unwrap();
-        image.set_onload(Some(&_onload));
-        CanvasSVGImage { image, _onload }
+        let onload: Function = closure.into_js_value().dyn_into().unwrap();
+        image.set_onload(Some(&onload));
+        Self { image, _onload: onload }
     }
 }
 
-impl CanvasContextRenderer for CanvasSVGImage {
+impl ContextRenderer for SVGImage {
     fn render_at_position(&self, ctx: &CanvasRenderingContext2d, position: (f64, f64)) {
         ctx.draw_image_with_html_image_element(&self.image, position.0, position.1)
             .unwrap();
     }
 }
 
-impl Into<HtmlImageElement> for CanvasSVGImage {
-    fn into(self) -> HtmlImageElement {
-        self.image
+impl From<SVGImage> for HtmlImageElement {
+    fn from(value: SVGImage) -> Self {
+        value.image
     }
 }
 
 #[derive(Clone)]
-pub struct CanvasElement {
-    element: Box<dyn CanvasContextRenderer>,
+pub struct Element {
+    element: Box<dyn ContextRenderer>,
     position: (f64, f64),
     connection_points: Vec<ConnectionPoint>,
 }
 
-pub trait AsCanvasElement {
-    fn as_canvas_element(self, position: (f64, f64)) -> CanvasElement;
+pub trait IntoCanvasElement {
+    fn into_canvas_element(self, position: (f64, f64)) -> Element;
 }
 
-impl CanvasElement {
+impl Element {
     pub fn new(
-        element: Box<dyn CanvasContextRenderer>,
+        element: Box<dyn ContextRenderer>,
         position: (f64, f64),
         connection_points: &[ConnectionPoint],
     ) -> Self {
@@ -177,12 +177,12 @@ impl CanvasElement {
         //     .for_each(|e| e.render_at_position(ctx, position))
     }
 
-    pub fn set_position(&mut self, position: (f64, f64)) {
-        self.position = position;
-    }
-    pub fn get_position(&self) -> (f64, f64) {
-        self.position
-    }
+    // pub fn set_position(&mut self, position: (f64, f64)) {
+    //     self.position = position;
+    // }
+    // pub fn get_position(&self) -> (f64, f64) {
+    //     self.position
+    // }
     pub fn at_position(&self, position: (f64, f64)) -> Self {
         Self {
             element: self.element.clone(),
@@ -195,11 +195,8 @@ impl CanvasElement {
     }
 }
 
-impl PartialEq for CanvasElement {
+impl PartialEq for Element {
     fn eq(&self, _other: &Self) -> bool {
-        false
-    }
-    fn ne(&self, _other: &Self) -> bool {
         false
     }
 }

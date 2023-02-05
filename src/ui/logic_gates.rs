@@ -1,10 +1,11 @@
-use crate::ui::canvas::{CanvasContextRenderer, CanvasSVGImage};
+use crate::ui::canvas::{ContextRenderer, SVGImage};
 
 use super::{
-    canvas::{AsCanvasElement, CanvasElement},
+    canvas::{Element, IntoCanvasElement},
     connection_point::ConnectionPoint,
 };
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum LogicGateType {
     And,
@@ -15,8 +16,8 @@ pub enum LogicGateType {
 }
 
 impl LogicGateType {
-    fn get_svg_string(&self, inputs_inverted: (bool, bool)) -> &'static str {
-        use LogicGateType::*;
+    const fn get_svg_string(&self, inputs_inverted: (bool, bool)) -> &'static str {
+        use LogicGateType::{And, Nand, Nor, Or, Xor};
         // TODO: Someone please replace this match statement with something more readable
         match inputs_inverted {
             (false, false) => match self {
@@ -94,22 +95,22 @@ impl LogicGateType {
 #[derive(Clone)]
 /// A Simple 2 input 1 ouput logic gate
 pub struct LogicGate {
-    gate_type: LogicGateType,
-    image: CanvasSVGImage,
+    _gate_type: LogicGateType,
+    image: SVGImage,
 }
 impl LogicGate {
-    pub fn new(gate_type: LogicGateType) -> LogicGate {
+    pub fn new(gate_type: LogicGateType) -> Self {
         Self::new_with_inverted_inputs(gate_type, (false, false))
     }
 
     pub fn new_with_inverted_inputs(
         gate_type: LogicGateType,
         inputs_inverted: (bool, bool),
-    ) -> LogicGate {
-        let image = CanvasSVGImage::new(gate_type.get_svg_string(inputs_inverted));
-        LogicGate { gate_type, image }
+    ) -> Self {
+        let image = SVGImage::new(gate_type.get_svg_string(inputs_inverted));
+        Self { _gate_type: gate_type, image }
     }
-    pub fn get_connection_points() -> [ConnectionPoint; 3] {
+    pub const fn get_connection_points() -> [ConnectionPoint; 3] {
         [
             ConnectionPoint::new(0.0, 25.0, [true, false, false, true]),
             ConnectionPoint::new(0.0, 75.0, [false, false, true, true]),
@@ -117,26 +118,28 @@ impl LogicGate {
         ]
     }
 }
-impl CanvasContextRenderer for LogicGate {
+impl ContextRenderer for LogicGate {
     fn render_at_position(&self, ctx: &web_sys::CanvasRenderingContext2d, position: (f64, f64)) {
-        use LogicGateType::*;
-        match self.gate_type {
-            And => ctx
-                .draw_image_with_html_image_element(&self.image.image, position.0, position.1)
-                .unwrap(),
-            Or => ctx
-                .draw_image_with_html_image_element(&self.image.image, position.0, position.1)
-                .unwrap(),
-            Xor => ctx
-                .draw_image_with_html_image_element(&self.image.image, position.0, position.1)
-                .unwrap(),
-            Nand => ctx
-                .draw_image_with_html_image_element(&self.image.image, position.0, position.1)
-                .unwrap(),
-            Nor => ctx
-                .draw_image_with_html_image_element(&self.image.image, position.0, position.1)
-                .unwrap(),
-        }
+        // use LogicGateType::{And, Nand, Nor, Or, Xor};
+        ctx.draw_image_with_html_image_element(&self.image.image, position.0, position.1)
+            .unwrap();
+        // match self.gate_type {
+        //     And => ctx
+        //         .draw_image_with_html_image_element(&self.image.image, position.0, position.1)
+        //         .unwrap(),
+        //     Or => ctx
+        //         .draw_image_with_html_image_element(&self.image.image, position.0, position.1)
+        //         .unwrap(),
+        //     Xor => ctx
+        //         .draw_image_with_html_image_element(&self.image.image, position.0, position.1)
+        //         .unwrap(),
+        //     Nand => ctx
+        //         .draw_image_with_html_image_element(&self.image.image, position.0, position.1)
+        //         .unwrap(),
+        //     Nor => ctx
+        //         .draw_image_with_html_image_element(&self.image.image, position.0, position.1)
+        //         .unwrap(),
+        // }
     }
 }
 
@@ -146,8 +149,8 @@ impl From<LogicGateType> for LogicGate {
     }
 }
 
-impl AsCanvasElement for LogicGate {
-    fn as_canvas_element(self, position: (f64, f64)) -> CanvasElement {
-        CanvasElement::new(Box::new(self), position, &Self::get_connection_points())
+impl IntoCanvasElement for LogicGate {
+    fn into_canvas_element(self, position: (f64, f64)) -> Element {
+        Element::new(Box::new(self), position, &Self::get_connection_points())
     }
 }
