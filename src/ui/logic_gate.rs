@@ -1,9 +1,9 @@
 use wasm_bindgen::JsValue;
 
-use crate::ui::canvas::{ContextRenderer, SVGImage};
+use crate::ui::canvas::{renderer::ContextRenderer, svg_image::SVGImage};
 
 use super::{
-    canvas::{Element, IntoCanvasElement},
+    canvas::element::{Element, IntoCanvasElement},
     connection_point::ConnectionPoint,
 };
 
