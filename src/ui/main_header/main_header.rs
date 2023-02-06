@@ -1,4 +1,4 @@
-use std::fmt::{Debug, Display};
+use std::fmt::Debug;
 
 use log::debug;
 use stylist::style;
@@ -7,11 +7,15 @@ use yew_icons::IconId;
 
 use crate::ui::bar::BarHorizontal;
 
-use super::{header_menu::HeaderMenu, menu_option::MenuOption};
+use super::{
+    header_menu::HeaderMenu,
+    header_option::{self, HeaderOption},
+    menu_option::MenuOption,
+};
 
 pub enum Msg {
-    Clicked(HeaderOptionType),
-    Hovered(HeaderOptionType),
+    Clicked(header_option::Type),
+    Hovered(header_option::Type),
     Closed,
 }
 
@@ -22,7 +26,7 @@ pub struct Props {
 }
 
 pub struct MainHeader {
-    header_active: Option<HeaderOptionType>,
+    header_active: Option<header_option::Type>,
 }
 
 impl Component for MainHeader {
@@ -61,6 +65,7 @@ impl Component for MainHeader {
         }
     }
 
+    #[allow(clippy::cognitive_complexity)]
     fn view(&self, ctx: &yew::Context<Self>) -> yew::Html {
         let classes = ctx.props().class.clone();
         let header = style!(
@@ -101,8 +106,8 @@ impl Component for MainHeader {
                     }
 
                 //TODO: Include logo
-                    <HeaderOption typ={ HeaderOptionType::File } onclick={ onclick.clone() } onhover={ onhover.clone() } active_header={ self.header_active } />
-                        <HeaderMenu width="200px" position_x="0px" active={ self.is_header_active(HeaderOptionType::File) }>
+                    <HeaderOption typ={ header_option::Type::File } onclick={ onclick.clone() } onhover={ onhover.clone() } active_header={ self.header_active } />
+                        <HeaderMenu width="200px" position_x="0px" active={ self.is_header_active(header_option::Type::File) }>
                             <MenuOption text="New" shortcut="Ctrl+N"/>
                             <MenuOption text="Open" shortcut="Ctrl+O"/>
                             <BarHorizontal />
@@ -118,8 +123,8 @@ impl Component for MainHeader {
                             <MenuOption text="Exit" shortcut="Alt+F4"/>
                         </HeaderMenu>
 
-                    <HeaderOption typ={ HeaderOptionType::Edit } onclick={ onclick.clone() } onhover={ onhover.clone() } active_header={ self.header_active } />
-                    <HeaderMenu width="200px" position_x="52px" active={ self.is_header_active(HeaderOptionType::Edit) }>
+                    <HeaderOption typ={ header_option::Type::Edit } onclick={ onclick.clone() } onhover={ onhover.clone() } active_header={ self.header_active } />
+                    <HeaderMenu width="200px" position_x="52px" active={ self.is_header_active(header_option::Type::Edit) }>
                         <MenuOption text="Undo" shortcut="Ctrl+Z" />
                         <MenuOption text="Redo" shortcut="Ctrl+Y" />
                         <BarHorizontal />
@@ -130,16 +135,16 @@ impl Component for MainHeader {
                         <MenuOption text="Delete" shortcut="Del" />
                     </HeaderMenu>
 
-                    <HeaderOption typ={ HeaderOptionType::View } onclick={ onclick.clone() } onhover={ onhover.clone() } active_header={ self.header_active } />
-                    <HeaderMenu width="200px" position_x="95px" active={ self.is_header_active(HeaderOptionType::View) }>
+                    <HeaderOption typ={ header_option::Type::View } onclick={ onclick.clone() } onhover={ onhover.clone() } active_header={ self.header_active } />
+                    <HeaderMenu width="200px" position_x="95px" active={ self.is_header_active(header_option::Type::View) }>
                         <MenuOption text="Zoom In" />
                         <MenuOption text="Zoom Out" />
                         <MenuOption text="Fit Window" />
                         <MenuOption text="Show/Hide Grid" />
                     </HeaderMenu>
 
-                    <HeaderOption typ={ HeaderOptionType::Tools } onclick={ onclick.clone() } onhover={ onhover.clone() } active_header={ self.header_active } />
-                    <HeaderMenu width="250px" position_x="146px" active={ self.is_header_active(HeaderOptionType::Tools) }>
+                    <HeaderOption typ={ header_option::Type::Tools } onclick={ onclick.clone() } onhover={ onhover.clone() } active_header={ self.header_active } />
+                    <HeaderMenu width="250px" position_x="146px" active={ self.is_header_active(header_option::Type::Tools) }>
                         <MenuOption icon_id={ IconId::LucideRotateCcw } text="Rotate Left" shortcut="Ctrl+R"/>
                         <MenuOption text="Rotate Right" shortcut="Ctrl+Shift+R"/>
                         <MenuOption text="Mirror Vertical" shortcut="Ctrl+M"/>
@@ -155,8 +160,8 @@ impl Component for MainHeader {
                         <MenuOption text="Pause At Change" disabled=false />
                     </HeaderMenu>
 
-                    <HeaderOption disabled=true typ={ HeaderOptionType::Options } onclick={ onclick.clone() } onhover={ onhover.clone() } active_header={ self.header_active } />
-                    <HeaderOption disabled=true typ={ HeaderOptionType::Help } onclick={ onclick.clone() } onhover={ onhover.clone() } active_header={ self.header_active } />
+                    <HeaderOption disabled=true typ={ header_option::Type::Options } onclick={ onclick.clone() } onhover={ onhover.clone() } active_header={ self.header_active } />
+                    <HeaderOption disabled=true typ={ header_option::Type::Help } onclick={ onclick.clone() } onhover={ onhover.clone() } active_header={ self.header_active } />
                 </div>
             </div>
         }
@@ -164,101 +169,7 @@ impl Component for MainHeader {
 }
 
 impl MainHeader {
-    fn is_header_active(&self, header: HeaderOptionType) -> bool {
+    fn is_header_active(&self, header: header_option::Type) -> bool {
         self.header_active.map_or(false, |h| h == header)
-    }
-}
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum HeaderOptionType {
-    File,
-    Edit,
-    View,
-    Tools,
-    Options,
-    Help,
-}
-impl Display for HeaderOptionType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{self:?}")
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Properties)]
-pub struct HeaderOptionProps {
-    pub typ: HeaderOptionType,
-    pub onclick: Callback<HeaderOptionType>,
-    #[prop_or_default]
-    pub onhover: Callback<HeaderOptionType>,
-    #[prop_or(false)]
-    pub disabled: bool,
-    #[prop_or_default]
-    pub active_header: Option<HeaderOptionType>,
-}
-
-pub struct HeaderOption {}
-
-impl Component for HeaderOption {
-    type Message = ();
-    type Properties = HeaderOptionProps;
-
-    fn create(_ctx: &yew::Context<Self>) -> Self {
-        Self {}
-    }
-    fn view(&self, ctx: &yew::Context<Self>) -> yew::Html {
-        let active = ctx
-            .props()
-            .active_header
-            .as_ref()
-            .map_or(false, |h| h.eq(&ctx.props().typ));
-
-        let style = style!(
-            r#"
-            cursor: ${cursor};
-            padding: 3px 8px;
-            margin: 0;
-            border-radius: 5px;
-            user-select: none;
-
-            background: ${background};
-            color: ${color};
-
-        :hover {
-            background: ${background_hover};
-            color: ${color_hover};
-        }
-        "#,
-            cursor = if ctx.props().disabled {
-                "default"
-            } else {
-                "pointer"
-            },
-            background = if active { "#f5f5f5" } else { "inherit" },
-            color = if ctx.props().disabled {
-                "gray"
-            } else if active {
-                "#7988ff"
-            } else {
-                "inherit"
-            },
-            background_hover = if ctx.props().disabled {
-                "inherit"
-            } else {
-                "#f5f5f5"
-            },
-            color_hover = if ctx.props().disabled {
-                "gray"
-            } else {
-                "#7988ff"
-            }
-        )
-        .unwrap();
-        let typ = ctx.props().typ;
-        let onclick = ctx.props().onclick.reform(move |_| typ);
-        let onmouseover = ctx.props().onhover.reform(move |_| typ);
-        html! {
-            <>
-                <span class={ style } { onclick } { onmouseover }>{&ctx.props().typ}</span>
-            </>
-        }
     }
 }
