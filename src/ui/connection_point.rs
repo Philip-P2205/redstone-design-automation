@@ -2,7 +2,7 @@ use std::f64::consts::PI;
 
 use wasm_bindgen::JsValue;
 
-use super::canvas::renderer::ContextRenderer;
+use super::canvas::CanvasContextRenderer;
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct ConnectionPoint {
@@ -50,7 +50,7 @@ impl ConnectionPoint {
     }
 }
 
-impl ContextRenderer for ConnectionPoint {
+impl CanvasContextRenderer for ConnectionPoint {
     fn render_at_position(
         &self,
         ctx: &web_sys::CanvasRenderingContext2d,

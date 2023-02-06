@@ -1,15 +1,21 @@
-use std::{rc::Rc, cell::{Cell, RefCell}};
+use std::{
+    cell::{Cell, RefCell},
+    rc::Rc,
+};
 
 use gloo::utils::window;
 use js_sys::Function;
-use wasm_bindgen::{JsValue, prelude::Closure, JsCast};
+use wasm_bindgen::{prelude::Closure, JsCast, JsValue};
 use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement};
 
-use crate::ui::{canvas::{element::{Element, IntoCanvasElement}, renderer::Renderer}, connection_point::ConnectionPoint, logic_gate::{LogicGateType, LogicGate}, console_option::ConsoleOption};
+use crate::ui::{
+    canvas::{CanvasElement, CanvasRenderer, IntoCanvasElement},
+    connection_point::ConnectionPoint,
+    console_option::ConsoleOption,
+    logic_gate::{LogicGate, LogicGateType},
+};
 
 use super::GRID_SIZE;
-
-
 
 #[derive(Clone, PartialEq)]
 pub struct Workarea {
@@ -20,9 +26,9 @@ pub struct Workarea {
     initialized: Cell<bool>,
     onclick: Function,
     onmousemove: Function,
-    canvas_elements: Rc<RefCell<Vec<Element>>>,
+    canvas_elements: Rc<RefCell<Vec<CanvasElement>>>,
     connection_points: Rc<RefCell<Vec<ConnectionPoint>>>,
-    selected_tool: Rc<RefCell<Option<Element>>>,
+    selected_tool: Rc<RefCell<Option<CanvasElement>>>,
 }
 
 impl Workarea {
@@ -32,8 +38,8 @@ impl Workarea {
         let height = Rc::new(Cell::new(Self::get_height()));
         let mouse_position = Rc::new(Cell::new((0, 0)));
         let grid_position = Rc::new(Cell::new((0.0, 0.0)));
-        let canvas_elements: Rc<RefCell<Vec<Element>>> = Rc::new(RefCell::new(Vec::new()));
-        let selected_tool: Rc<RefCell<Option<Element>>> = Rc::new(RefCell::new(Some(
+        let canvas_elements: Rc<RefCell<Vec<CanvasElement>>> = Rc::new(RefCell::new(Vec::new()));
+        let selected_tool: Rc<RefCell<Option<CanvasElement>>> = Rc::new(RefCell::new(Some(
             LogicGate::new(LogicGateType::And)
                 .unwrap_to_console()
                 .into_canvas_element((0.0, 0.0)),
@@ -195,7 +201,7 @@ impl Workarea {
     }
 }
 
-impl Renderer for Workarea {
+impl CanvasRenderer for Workarea {
     fn render(&self, canvas: &web_sys::HtmlCanvasElement) -> Result<(), JsValue> {
         let _init = self.initialized.get();
         if !self.initialized.get() {

@@ -2,7 +2,7 @@ use stylist::style;
 use yew::{html, Classes, Component, Properties};
 
 use super::{super::{
-    canvas::{element::Element, Canvas},
+    canvas::{CanvasElement, Canvas},
     console_option::ConsoleOption,
 }, workarea::Workarea};
 
@@ -19,7 +19,7 @@ pub struct Props {
     #[prop_or(GRID_SIZE_PROPS)]
     pub grid_size: &'static str,
     #[prop_or_default]
-    pub selected_tool: Option<Element>,
+    pub selected_tool: Option<CanvasElement>,
 }
 
 impl Component for Workspace {

@@ -3,23 +3,23 @@ use web_sys::CanvasRenderingContext2d;
 
 use crate::ui::connection_point::ConnectionPoint;
 
-use super::renderer::ContextRenderer;
+use super::renderer::CanvasContextRenderer;
 
 #[derive(Clone)]
-pub struct Element {
-    element: Box<dyn ContextRenderer>,
+pub struct CanvasElement {
+    element: Box<dyn CanvasContextRenderer>,
     position: (f64, f64),
     connection_points: Vec<ConnectionPoint>,
 }
 
 #[allow(clippy::module_name_repetitions)]
 pub trait IntoCanvasElement {
-    fn into_canvas_element(self, position: (f64, f64)) -> Element;
+    fn into_canvas_element(self, position: (f64, f64)) -> CanvasElement;
 }
 
-impl Element {
+impl CanvasElement {
     pub fn new(
-        element: Box<dyn ContextRenderer>,
+        element: Box<dyn CanvasContextRenderer>,
         position: (f64, f64),
         connection_points: &[ConnectionPoint],
     ) -> Self {
@@ -61,7 +61,7 @@ impl Element {
     }
 }
 
-impl PartialEq for Element {
+impl PartialEq for CanvasElement {
     fn eq(&self, _other: &Self) -> bool {
         false
     }

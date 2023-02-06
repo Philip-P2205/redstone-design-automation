@@ -2,7 +2,7 @@ use stylist::style;
 use yew::{function_component, html, Children, Html, Properties};
 
 #[derive(Debug, Clone, PartialEq, Properties)]
-pub struct Props {
+pub struct HeaderMenuProps {
     pub children: Children,
     #[prop_or("100%")]
     pub width: &'static str,
@@ -15,7 +15,7 @@ pub struct Props {
 }
 
 #[function_component]
-pub fn HeaderMenu(props: &Props) -> Html {
+pub fn HeaderMenu(props: &HeaderMenuProps) -> Html {
     let style = style!(
         r#"
         width: ${w};

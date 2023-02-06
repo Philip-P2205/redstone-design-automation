@@ -1,9 +1,9 @@
 use wasm_bindgen::JsValue;
 
-use crate::ui::canvas::{renderer::ContextRenderer, svg_image::SVGImage};
+use crate::ui::canvas::{CanvasContextRenderer, CanvasSVGImage};
 
 use super::{
-    canvas::element::{Element, IntoCanvasElement},
+    canvas::{CanvasElement, IntoCanvasElement},
     connection_point::ConnectionPoint,
 };
 
@@ -98,7 +98,7 @@ impl LogicGateType {
 /// A Simple 2 input 1 ouput logic gate
 pub struct LogicGate {
     _gate_type: LogicGateType,
-    image: SVGImage,
+    image: CanvasSVGImage,
 }
 impl LogicGate {
     pub fn new(gate_type: LogicGateType) -> Result<Self, JsValue> {
@@ -109,7 +109,7 @@ impl LogicGate {
         gate_type: LogicGateType,
         inputs_inverted: (bool, bool),
     ) -> Result<Self, JsValue> {
-        let image = SVGImage::new(gate_type.get_svg_string(inputs_inverted))?;
+        let image = CanvasSVGImage::new(gate_type.get_svg_string(inputs_inverted))?;
         Ok(Self {
             _gate_type: gate_type,
             image,
@@ -123,7 +123,7 @@ impl LogicGate {
         ]
     }
 }
-impl ContextRenderer for LogicGate {
+impl CanvasContextRenderer for LogicGate {
     fn render_at_position(
         &self,
         ctx: &web_sys::CanvasRenderingContext2d,
@@ -159,7 +159,7 @@ impl TryFrom<LogicGateType> for LogicGate {
 }
 
 impl IntoCanvasElement for LogicGate {
-    fn into_canvas_element(self, position: (f64, f64)) -> Element {
-        Element::new(Box::new(self), position, &Self::get_connection_points())
+    fn into_canvas_element(self, position: (f64, f64)) -> CanvasElement {
+        CanvasElement::new(Box::new(self), position, &Self::get_connection_points())
     }
 }

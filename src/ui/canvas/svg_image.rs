@@ -4,15 +4,15 @@ use web_sys::{HtmlImageElement, BlobPropertyBag, CanvasRenderingContext2d, Blob}
 
 use crate::ui::console_option::ConsoleOption;
 
-use super::renderer::ContextRenderer;
+use super::renderer::CanvasContextRenderer;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SVGImage {
+pub struct CanvasSVGImage {
     pub image: HtmlImageElement,
     _onload: Function,
 }
 
-impl SVGImage {
+impl CanvasSVGImage {
     pub fn new(svg: &'static str) -> Result<Self, JsValue> {
         let image = HtmlImageElement::new()?;
 
@@ -38,7 +38,7 @@ impl SVGImage {
     }
 }
 
-impl ContextRenderer for SVGImage {
+impl CanvasContextRenderer for CanvasSVGImage {
     fn render_at_position(
         &self,
         ctx: &CanvasRenderingContext2d,
@@ -48,8 +48,8 @@ impl ContextRenderer for SVGImage {
     }
 }
 
-impl From<SVGImage> for HtmlImageElement {
-    fn from(value: SVGImage) -> Self {
+impl From<CanvasSVGImage> for HtmlImageElement {
+    fn from(value: CanvasSVGImage) -> Self {
         value.image
     }
 }

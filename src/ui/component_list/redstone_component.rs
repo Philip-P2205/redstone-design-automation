@@ -3,7 +3,7 @@ use yew::{html, Component, Properties};
 use yew_icons::{Icon, IconId};
 
 #[derive(Debug, Clone, PartialEq, Eq, Properties)]
-pub struct Props {
+pub struct RedstoneComponentProps {
     #[prop_or(IconId::LucideFileImage)]
     icon_id: IconId,
     #[prop_or("Component")]
@@ -14,7 +14,7 @@ pub struct RedstoneComponent;
 
 impl Component for RedstoneComponent {
     type Message = ();
-    type Properties = Props;
+    type Properties = RedstoneComponentProps;
 
     fn create(_ctx: &yew::Context<Self>) -> Self {
         Self

@@ -4,7 +4,7 @@ use stylist::style;
 use yew::{html, Callback, Component, Properties};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Type {
+pub enum HeaderOptionType {
     File,
     Edit,
     View,
@@ -12,29 +12,29 @@ pub enum Type {
     Options,
     Help,
 }
-impl Display for Type {
+impl Display for HeaderOptionType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{self:?}")
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Properties)]
-pub struct Props {
-    pub typ: Type,
-    pub onclick: Callback<Type>,
+pub struct HeaderOptionProps {
+    pub typ: HeaderOptionType,
+    pub onclick: Callback<HeaderOptionType>,
     #[prop_or_default]
-    pub onhover: Callback<Type>,
+    pub onhover: Callback<HeaderOptionType>,
     #[prop_or(false)]
     pub disabled: bool,
     #[prop_or_default]
-    pub active_header: Option<Type>,
+    pub active_header: Option<HeaderOptionType>,
 }
 
 pub struct HeaderOption;
 
 impl Component for HeaderOption {
     type Message = ();
-    type Properties = Props;
+    type Properties = HeaderOptionProps;
 
     fn create(_ctx: &yew::Context<Self>) -> Self {
         Self

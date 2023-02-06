@@ -5,12 +5,12 @@ use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::HtmlCanvasElement;
 use yew::{html, Children, Component, NodeRef, Properties};
 
-use super::{super::console_option::ConsoleOption, renderer::Renderer};
+use super::{super::console_option::ConsoleOption, renderer::CanvasRenderer};
 
 #[derive(Debug, PartialEq, Properties)]
-pub struct Props<T>
+pub struct CanvasProps<T>
 where
-    T: Renderer,
+    T: CanvasRenderer,
 {
     #[prop_or_default]
     pub style: &'static str,
@@ -23,14 +23,14 @@ where
     pub renderer: Box<T>,
 }
 
-pub enum Msg {
+pub enum CanvasMsg {
     Init,
     Render,
 }
 
 pub struct Canvas<T>
 where
-    T: Renderer,
+    T: CanvasRenderer,
 {
     canvas: NodeRef,
     callback: Closure<dyn FnMut()>,
@@ -39,17 +39,17 @@ where
 
 impl<T> Component for Canvas<T>
 where
-    T: Renderer + 'static,
+    T: CanvasRenderer + 'static,
 {
-    type Message = Msg;
-    type Properties = Props<T>;
+    type Message = CanvasMsg;
+    type Properties = CanvasProps<T>;
     fn create(ctx: &yew::Context<Self>) -> Self {
         let link = ctx.link().clone();
-        let cb: Box<dyn FnMut()> = Box::new(move || link.send_message(Msg::Render));
+        let cb: Box<dyn FnMut()> = Box::new(move || link.send_message(CanvasMsg::Render));
 
         let cb = Closure::wrap(cb);
 
-        ctx.link().send_message(Msg::Init);
+        ctx.link().send_message(CanvasMsg::Init);
 
         Self {
             canvas: NodeRef::default(),
@@ -60,7 +60,7 @@ where
 
     fn update(&mut self, ctx: &yew::Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            Msg::Render => {
+            CanvasMsg::Render => {
                 let renderer = &ctx.props().renderer;
                 let canvas: HtmlCanvasElement = self
                     .canvas
@@ -71,8 +71,8 @@ where
                     .expect_to_console("Could not get animation frame");
                 renderer.render(&canvas).unwrap_to_console();
             }
-            Msg::Init => {
-                ctx.link().send_message(Msg::Render);
+            CanvasMsg::Init => {
+                ctx.link().send_message(CanvasMsg::Render);
             }
         }
         false

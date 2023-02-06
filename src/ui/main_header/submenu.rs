@@ -3,7 +3,6 @@ use yew::Component;
 
 
 pub struct Submenu {
-
 }
 
 impl Component for Submenu {
