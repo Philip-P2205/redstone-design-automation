@@ -1,11 +1,11 @@
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 
 use log::debug;
 use stylist::style;
 use yew::prelude::*;
 use yew_icons::IconId;
 
-use crate::ui::bar::BarHorizontal;
+use crate::{ui::bar::BarHorizontal, impl_display_with_debug};
 
 use super::{
     header_menu::HeaderMenu,
@@ -18,11 +18,18 @@ pub enum MainHeaderMsg {
     Hovered(header_option::HeaderOptionType),
     Closed,
 }
+#[derive(Debug, Clone, Copy)]
+pub enum CallbackReason {
+    
+}
+impl_display_with_debug!(CallbackReason);
 
-#[derive(Debug, Clone, PartialEq, Eq, Properties)]
+#[derive(Debug, Clone, PartialEq, Properties)]
 pub struct MainHeaderProps {
     #[prop_or_default]
     pub class: Classes,
+
+    pub callback: Callback<CallbackReason>
 }
 
 pub struct MainHeader {

@@ -1,26 +1,35 @@
 use stylist::style;
-use yew::{html, Classes, Component, Properties};
+use yew::{html, Classes, Component, Properties, Callback};
 
-use super::{super::{
-    canvas::{CanvasElement, Canvas},
-    console_option::ConsoleOption,
-}, workarea::Workarea};
+use crate::impl_display_with_debug;
+
+use super::{
+    super::{
+        canvas::{Canvas, CanvasElement},
+        console_option::ConsoleOption,
+    },
+    workarea::Workarea,
+};
 
 pub const GRID_SIZE: f64 = 25.0;
 pub const GRID_SIZE_PROPS: &str = "25px";
 
-pub struct Workspace {}
+#[derive(Debug, Clone, Copy)]
+pub enum CallbackReason {}
+impl_display_with_debug!(CallbackReason);
 
 #[derive(Clone, PartialEq, Properties)]
 pub struct Props {
     #[prop_or_default]
     pub class: Classes,
+    pub callback: Callback<CallbackReason>,
     /// The size of the grid
     #[prop_or(GRID_SIZE_PROPS)]
     pub grid_size: &'static str,
     #[prop_or_default]
     pub selected_tool: Option<CanvasElement>,
 }
+pub struct Workspace {}
 
 impl Component for Workspace {
     type Message = ();

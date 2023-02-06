@@ -2,15 +2,23 @@ use stylist::style;
 /**
  * This struct shows a list of available components in the application
  */
-use yew::{html, Component, Properties, Classes};
+use yew::{html, Component, Properties, Classes, Callback};
+
+use crate::impl_display_with_debug;
 
 use super::redstone_component::RedstoneComponent;
 
-#[derive(Debug, Clone, PartialEq, Eq, Properties)]
+#[derive(Debug, Clone, PartialEq, Properties)]
 pub struct ComponentListProps {
     #[prop_or_default]
-    pub class: Classes
+    pub class: Classes,
+    pub callback: Callback<CallbackReason>
 }
+
+#[derive(Debug, Clone, Copy)]
+pub enum CallbackReason {
+}
+impl_display_with_debug!(CallbackReason);
 
 pub struct ComponentList {}
 

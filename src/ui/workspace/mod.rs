@@ -1,4 +1,4 @@
-mod workarea;
+pub mod workarea;
 pub use workarea::*;
-mod workspace;
+pub mod workspace;
 pub use workspace::*;
