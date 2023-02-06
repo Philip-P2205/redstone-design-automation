@@ -5,6 +5,6 @@ pub mod toolbar;
 pub mod workspace;
 pub mod bar;
 pub mod canvas;
-pub mod logic_gates;
+pub mod logic_gate;
 pub mod connection_point;
 pub mod console_option;

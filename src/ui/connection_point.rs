@@ -2,7 +2,7 @@ use std::f64::consts::PI;
 
 use wasm_bindgen::JsValue;
 
-use super::canvas::ContextRenderer;
+use super::canvas::renderer::ContextRenderer;
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct ConnectionPoint {

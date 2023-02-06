@@ -1,91 +1,18 @@
-use std::{
-    cell::{Cell, RefCell},
-    rc::Rc,
-};
+use std::{rc::Rc, cell::{Cell, RefCell}};
 
 use gloo::utils::window;
 use js_sys::Function;
-use stylist::style;
-use wasm_bindgen::{prelude::Closure, JsCast, JsValue};
+use wasm_bindgen::{JsValue, prelude::Closure, JsCast};
 use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement};
-use yew::{html, Classes, Component, Properties};
 
-use super::{
-    canvas::{Canvas, Element, IntoCanvasElement, Renderer},
-    connection_point::ConnectionPoint,
-    console_option::ConsoleOption,
-    logic_gates::{LogicGate, LogicGateType},
-};
+use crate::ui::{canvas::{element::{Element, IntoCanvasElement}, renderer::Renderer}, connection_point::ConnectionPoint, logic_gate::{LogicGateType, LogicGate}, console_option::ConsoleOption};
 
-const GRID_SIZE: f64 = 25.0;
-const GRID_SIZE_PROPS: &str = "25px";
+use super::GRID_SIZE;
 
-pub struct Workspace {}
 
-#[derive(Clone, PartialEq, Properties)]
-pub struct Props {
-    #[prop_or_default]
-    pub class: Classes,
-    /// The size of the grid
-    #[prop_or(GRID_SIZE_PROPS)]
-    pub grid_size: &'static str,
-    #[prop_or_default]
-    pub selected_tool: Option<Element>,
-}
-
-impl Component for Workspace {
-    type Message = ();
-    type Properties = Props;
-
-    fn create(_ctx: &yew::Context<Self>) -> Self {
-        Self {}
-    }
-    fn update(&mut self, _ctx: &yew::Context<Self>, _msgg: Self::Message) -> bool {
-        false
-    }
-
-    fn view(&self, ctx: &yew::Context<Self>) -> yew::Html {
-        // TODO: Make background responsive
-        let style_workspace = style!(
-            r#"
-            width: 100%;
-            height: 100%;
-            display: grid;
-            grid-template-rows: 22px 1fr;
-            grid-template-columns: 22px 1fr;
-            grid-template-areas: "ruler_corner ruler_top"
-                                 "ruler_side workarea";
-        "#
-        )
-        .unwrap_to_console();
-        let mut classes = ctx.props().class.clone();
-
-        let style_workarea = style!(r#"
-            width: 100%;
-            height: 100%;
-            grid-area: workarea;
-            overflow: hidden;
-            background-image: linear-gradient(rgba(247, 247, 247, 1.0) .1em, transparent .1em), linear-gradient(90deg, rgba(247, 247, 247, 1.0) .1em, transparent .1em);
-            background-size: ${grid_size} ${grid_size};
-        "#,
-        grid_size= ctx.props().grid_size
-    ).unwrap_to_console();
-        classes.push(style_workspace);
-        let workarea = Workarea::new().unwrap_to_console();
-
-        html! (
-            <div class={ classes }>
-                <div class={ style_workarea }>
-                    <Canvas<Workarea> renderer={ Box::new(workarea) } width={ Workarea::get_width() } height={ Workarea::get_height() }>
-                    </Canvas<Workarea>>
-                </div>
-            </div>
-        )
-    }
-}
 
 #[derive(Clone, PartialEq)]
-struct Workarea {
+pub struct Workarea {
     mouse_position: Rc<Cell<(i32, i32)>>,
     grid_position: Rc<Cell<(f64, f64)>>,
     width: Rc<Cell<i32>>,
@@ -100,7 +27,7 @@ struct Workarea {
 
 impl Workarea {
     #[allow(clippy::cast_possible_truncation)]
-    fn new() -> Result<Self, JsValue> {
+    pub fn new() -> Result<Self, JsValue> {
         let width = Rc::new(Cell::new(Self::get_width()));
         let height = Rc::new(Cell::new(Self::get_height()));
         let mouse_position = Rc::new(Cell::new((0, 0)));
@@ -173,7 +100,7 @@ impl Workarea {
     }
 
     #[allow(clippy::cast_possible_truncation)]
-    fn get_width() -> i32 {
+    pub fn get_width() -> i32 {
         window()
             .inner_width()
             .expect_to_console("Could not get windows inner width")
@@ -182,7 +109,7 @@ impl Workarea {
             - 247
     }
     #[allow(clippy::cast_possible_truncation)]
-    fn get_height() -> i32 {
+    pub fn get_height() -> i32 {
         window()
             .inner_height()
             .expect_to_console("Could not get windows inner height")
@@ -191,7 +118,7 @@ impl Workarea {
             - 97
     }
 
-    fn init(&self, canvas: &web_sys::HtmlCanvasElement) {
+    pub fn init(&self, canvas: &web_sys::HtmlCanvasElement) {
         self.initialized.replace(true);
         canvas
             .add_event_listener_with_callback("mousemove", &self.onmousemove)
