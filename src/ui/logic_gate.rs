@@ -18,78 +18,50 @@ pub enum LogicGateType {
 }
 
 impl LogicGateType {
-    const fn get_svg_string(&self, inputs_inverted: (bool, bool)) -> &'static str {
+    fn get_svg_string(&self, inputs_inverted: (bool, bool)) -> String {
+        let (text, text_x) = self.get_svg_text();
+        let (input_path1, input_path2) = self.get_input_svg_path(inputs_inverted);
+        let output_path = self.get_output_svg_path();
+        format!(
+            r#"
+            <svg width="125" height="100" xmlns="http://www.w3.org/2000/svg">
+                <path style="fill: none; stroke: rgb(0, 0, 0); stroke-width: 2px;" d="M0,25 {input_path1} V1 H100 V50 {output_path} V99 H25 V75 {input_path2} V25"></path>
+                <text x="{text_x}" y="25" style="font-family: Arial; font-size: 20px;">{text}</text>
+            </svg>"#
+        )
+    }
+
+    const fn get_svg_text(&self) -> (&'static str, i32) {
         use LogicGateType::{And, Nand, Nor, Or, Xor};
-        // TODO: Someone please replace this match statement with something more readable
-        match inputs_inverted {
-            (false, false) => match self {
-                And => {
-                    r#"<svg width="125" height="100" xmlns="http://www.w3.org/2000/svg"><path style="fill: none; stroke: rgb(0, 0, 0); stroke-width: 2px;" d="M0,25 H25 V1 H100 V50 H125 H100 V99 H25 V75 H0 H25 V25"></path><text x="75" y="25" style="font-family: Arial; font-size: 20px;">&amp;</text></svg>"#
-                }
-                Or => {
-                    r#"<svg width="125" height="100" xmlns="http://www.w3.org/2000/svg"><path style="fill: none; stroke: rgb(0, 0, 0); stroke-width: 2px;" d="M0,25 H25 V1 H100 V50 H125 H100 V99 H25 V75 H0 H25 V25"></path><text x="55" y="25" style="font-family: Arial; font-size: 20px;">&gt;=1</text></svg>"#
-                }
-                Xor => {
-                    r#"<svg width="125" height="100" xmlns="http://www.w3.org/2000/svg"><path style="fill: none; stroke: rgb(0, 0, 0); stroke-width: 2px;" d="M0,25 H25 V1 H100 V50 H125 H100 V99 H25 V75 H0 H25 V25"></path><text x="65" y="25" style="font-family: Arial; font-size: 20px;">=1</text></svg>"#
-                }
-                Nand => {
-                    r#"<svg width="125" height="100" xmlns="http://www.w3.org/2000/svg"><path style="fill: none; stroke: rgb(0, 0, 0); stroke-width: 2px;" d="M0,25 H25 V1 H100 V50 A5,5,0,0,0,110,50 A5,5,0,0,0,100,50 M110,50 H125 M100,50 V99 H25 V75 H0 H25 V25"></path><text x="75" y="25" style="font-family: Arial; font-size: 20px;">&amp;</text></svg>"#
-                }
-                Nor => {
-                    r#"<svg width="125" height="100" xmlns="http://www.w3.org/2000/svg"><path style="fill: none; stroke: rgb(0, 0, 0); stroke-width: 2px;" d="M0,25 H25 V1 H100 V50 A5,5,0,0,0,110,50 A5,5,0,0,0,100,50 M110,50 H125 M100,50 V99 H25 V75 H0 H25 V25"></path><text x="55" y="25" style="font-family: Arial; font-size: 20px;">&gt;=1</text></svg>"#
-                }
-            },
-            (true, false) => match self {
-                And => {
-                    r#"<svg width="125" height="100" xmlns="http://www.w3.org/2000/svg"><path style="fill: none; stroke: rgb(0, 0, 0); stroke-width: 2px;" d="M0,25 H15 A5,5,0,0,0,25,25 A5,5,0,0,0,15,25 M25,25 V1 H100 V50 H125 H100 V99 H25 V75 H0 H25 V25"></path><text x="75" y="25" style="font-family: Arial; font-size: 20px;">&amp;</text></svg>"#
-                }
-                Or => {
-                    r#"<svg width="125" height="100" xmlns="http://www.w3.org/2000/svg"><path style="fill: none; stroke: rgb(0, 0, 0); stroke-width: 2px;" d="M0,25 H15 A5,5,0,0,0,25,25 A5,5,0,0,0,15,25 M25,25 V1 H100 V50 H125 H100 V99 H25 V75 H0 H25 V25"></path><text x="55" y="25" style="font-family: Arial; font-size: 20px;">&gt;=1</text></svg>"#
-                }
-                Xor => {
-                    r#"<svg width="125" height="100" xmlns="http://www.w3.org/2000/svg"><path style="fill: none; stroke: rgb(0, 0, 0); stroke-width: 2px;" d="M0,25 H15 A5,5,0,0,0,25,25 A5,5,0,0,0,15,25 M25,25 V1 H100 V50 H125 H100 V99 H25 V75 H0 H25 V25"></path><text x="65" y="25" style="font-family: Arial; font-size: 20px;">=1</text></svg>"#
-                }
-                Nand => {
-                    r#"<svg width="125" height="100" xmlns="http://www.w3.org/2000/svg"><path style="fill: none; stroke: rgb(0, 0, 0); stroke-width: 2px;" d="M0,25 H15 A5,5,0,0,0,25,25 A5,5,0,0,0,15,25 M25,25 V1 H100 V50 A5,5,0,0,0,110,50 A5,5,0,0,0,100,50 M110,50 H125 M100,50 V99 H25 V75 H0 H25 V25"></path><text x="75" y="25" style="font-family: Arial; font-size: 20px;">&amp;</text></svg>"#
-                }
-                Nor => {
-                    r#"<svg width="125" height="100" xmlns="http://www.w3.org/2000/svg"><path style="fill: none; stroke: rgb(0, 0, 0); stroke-width: 2px;" d="M0,25 H15 A5,5,0,0,0,25,25 A5,5,0,0,0,15,25 M25,25 V1 H100 V50 A5,5,0,0,0,110,50 A5,5,0,0,0,100,50 M110,50 H125 M100,50 V99 H25 V75 H0 H25 V25"></path><text x="55" y="25" style="font-family: Arial; font-size: 20px;">&gt;=1</text></svg>"#
-                }
-            },
-            (false, true) => match self {
-                And => {
-                    r#"<svg width="125" height="100" xmlns="http://www.w3.org/2000/svg"><path style="fill: none; stroke: rgb(0, 0, 0); stroke-width: 2px;" d="M0,25 H25 V1 H100 V50 H125 H100 V99 H25 V75 A5,5,0,0,0,15,75 H0 M15,75 A5,5,0,0,0,25,75 V25"></path><text x="55" y="25" style="font-family: Arial; font-size: 20px;">&gt;=1</text></svg>"#
-                }
-                Or => {
-                    r#"<svg width="125" height="100" xmlns="http://www.w3.org/2000/svg"><path style="fill: none; stroke: rgb(0, 0, 0); stroke-width: 2px;" d="M0,25 H25 V1 H100 V50 H125 H100 V99 H25 V75 A5,5,0,0,0,15,75 H0 M15,75 A5,5,0,0,0,25,75 V25"></path><text x="75" y="25" style="font-family: Arial; font-size: 20px;">&amp;</text></svg>"#
-                }
-                Xor => {
-                    r#"<svg width="125" height="100" xmlns="http://www.w3.org/2000/svg"><path style="fill: none; stroke: rgb(0, 0, 0); stroke-width: 2px;" d="M0,25 H25 V1 H100 V50 H125 H100 V99 H25 V75 A5,5,0,0,0,15,75 H0 M15,75 A5,5,0,0,0,25,75 V25"></path><text x="65" y="25" style="font-family: Arial; font-size: 20px;">=1</text></svg>"#
-                }
-                Nand => {
-                    r#"<svg width="125" height="100" xmlns="http://www.w3.org/2000/svg"><path style="fill: none; stroke: rgb(0, 0, 0); stroke-width: 2px;" d="M0,25 H25 V1 H100 V50 A5,5,0,0,0,110,50 A5,5,0,0,0,100,50 M110,50 H125 M100,50 V99 H25 V75 A5,5,0,0,0,15,75 H0 M15,75 A5,5,0,0,0,25,75 V25"></path><text x="75" y="25" style="font-family: Arial; font-size: 20px;">&amp;</text></svg>"#
-                }
-                Nor => {
-                    r#"<svg width="125" height="100" xmlns="http://www.w3.org/2000/svg"><path style="fill: none; stroke: rgb(0, 0, 0); stroke-width: 2px;" d="M0,25 H25 V1 H100 V50 A5,5,0,0,0,110,50 A5,5,0,0,0,100,50 M110,50 H125 M100,50 V99 H25 V75 A5,5,0,0,0,15,75 H0 M15,75 A5,5,0,0,0,25,75 V25"></path><text x="55" y="25" style="font-family: Arial; font-size: 20px;">&gt;=1</text></svg>"#
-                }
-            },
-            (true, true) => match self {
-                And => {
-                    r#"<svg width="125" height="100" xmlns="http://www.w3.org/2000/svg"><path style="fill: none; stroke: rgb(0, 0, 0); stroke-width: 2px;" d="M0,25 H15 A5,5,0,0,0,25,25 A5,5,0,0,0,15,25 M25,25 V1 H100 V50 H125 H100 V99 H25 V75 A5,5,0,0,0,15,75 H0 M15,75 A5,5,0,0,0,25,75 V25"></path><text x="55" y="25" style="font-family: Arial; font-size: 20px;">&gt;=1</text></svg>"#
-                }
-                Or => {
-                    r#"<svg width="125" height="100" xmlns="http://www.w3.org/2000/svg"><path style="fill: none; stroke: rgb(0, 0, 0); stroke-width: 2px;" d="M0,25 H15 A5,5,0,0,0,25,25 A5,5,0,0,0,15,25 M25,25 V1 H100 V50 H125 H100 V99 H25 V75 A5,5,0,0,0,15,75 H0 M15,75 A5,5,0,0,0,25,75 V25"></path><text x="75" y="25" style="font-family: Arial; font-size: 20px;">&amp;</text></svg>"#
-                }
-                Xor => {
-                    r#"<svg width="125" height="100" xmlns="http://www.w3.org/2000/svg"><path style="fill: none; stroke: rgb(0, 0, 0); stroke-width: 2px;" d="M0,25 H15 A5,5,0,0,0,25,25 A5,5,0,0,0,15,25 M25,25 V1 H100 V50 H125 H100 V99 H25 V75 A5,5,0,0,0,15,75 H0 M15,75 A5,5,0,0,0,25,75 V25"></path><text x="65" y="25" style="font-family: Arial; font-size: 20px;">=1</text></svg>"#
-                }
-                Nand => {
-                    r#"<svg width="125" height="100" xmlns="http://www.w3.org/2000/svg"><path style="fill: none; stroke: rgb(0, 0, 0); stroke-width: 2px;" d="M0,25 H15 A5,5,0,0,0,25,25 A5,5,0,0,0,15,25 M25,25 V1 H100 V50 A5,5,0,0,0,110,50 A5,5,0,0,0,100,50 M110,50 H125 M100,50 V99 H25 V75 A5,5,0,0,0,15,75 H0 M15,75 A5,5,0,0,0,25,75 V25"></path><text x="75" y="25" style="font-family: Arial; font-size: 20px;">&amp;</text></svg>"#
-                }
-                Nor => {
-                    r#"<svg width="125" height="100" xmlns="http://www.w3.org/2000/svg"><path style="fill: none; stroke: rgb(0, 0, 0); stroke-width: 2px;" d="M0,25 H15 A5,5,0,0,0,25,25 A5,5,0,0,0,15,25 M25,25 V1 H100 V50 A5,5,0,0,0,110,50 A5,5,0,0,0,100,50 M110,50 H125 M100,50 V99 H25 V75 A5,5,0,0,0,15,75 H0 M15,75 A5,5,0,0,0,25,75 V25"></path><text x="55" y="25" style="font-family: Arial; font-size: 20px;">&gt;=1</text></svg>"#
-                }
-            },
+        match self {
+            And | Nand => ("&amp;", 75),
+            Or | Nor => ("&gt;=1", 55),
+            Xor => ("=1", 65),
+        }
+    }
+
+    const fn get_input_svg_path(
+        &self,
+        inputs_inverted: (bool, bool),
+    ) -> (&'static str, &'static str) {
+        let input1 = if !inputs_inverted.0 {
+            "H25"
+        } else {
+            "H15 A5,5,0,0,0,25,25 A5,5,0,0,0,15,25 M25,25"
+        };
+        let input2 = if !inputs_inverted.1 {
+            "H0 H25"
+        } else {
+            "A5,5,0,0,0,15,75 H0 M15,75 A5,5,0,0,0,25,75"
+        };
+        (input1, input2)
+    }
+
+    const fn get_output_svg_path(&self) -> &'static str {
+        use LogicGateType::{And, Nand, Nor, Or, Xor};
+        match self {
+            And | Or | Xor => "H125 H100",
+            Nand | Nor => "A5,5,0,0,0,110,50 A5,5,0,0,0,100,50 M110,50 H125 M100,50",
         }
     }
 }
@@ -129,25 +101,7 @@ impl CanvasContextRenderer for LogicGate {
         ctx: &web_sys::CanvasRenderingContext2d,
         position: (f64, f64),
     ) -> Result<(), JsValue> {
-        // use LogicGateType::{And, Nand, Nor, Or, Xor};
         ctx.draw_image_with_html_image_element(&self.image.image, position.0, position.1)
-        // match self.gate_type {
-        //     And => ctx
-        //         .draw_image_with_html_image_element(&self.image.image, position.0, position.1)
-        //         .unwrap(),
-        //     Or => ctx
-        //         .draw_image_with_html_image_element(&self.image.image, position.0, position.1)
-        //         .unwrap(),
-        //     Xor => ctx
-        //         .draw_image_with_html_image_element(&self.image.image, position.0, position.1)
-        //         .unwrap(),
-        //     Nand => ctx
-        //         .draw_image_with_html_image_element(&self.image.image, position.0, position.1)
-        //         .unwrap(),
-        //     Nor => ctx
-        //         .draw_image_with_html_image_element(&self.image.image, position.0, position.1)
-        //         .unwrap(),
-        // }
     }
 }
 

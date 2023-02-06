@@ -13,11 +13,11 @@ pub struct CanvasSVGImage {
 }
 
 impl CanvasSVGImage {
-    pub fn new(svg: &'static str) -> Result<Self, JsValue> {
+    pub fn new(svg: String) -> Result<Self, JsValue> {
         let image = HtmlImageElement::new()?;
 
         let array = js_sys::Array::new_with_length(1); // The blob needs an array of the data
-        array.set(0, JsValue::from_str(svg));
+        array.set(0, JsValue::from(svg));
         let mut options = BlobPropertyBag::new();
         options.type_("image/svg+xml");
         let blob = Blob::new_with_buffer_source_sequence_and_options(&array, &options)?;
