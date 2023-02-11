@@ -9,10 +9,10 @@ use wasm_bindgen::{prelude::Closure, JsCast, JsValue};
 use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement};
 
 use crate::ui::{
-    canvas::{CanvasElement, CanvasRenderer, IntoCanvasElement},
+    application::ApplicationState,
+    canvas::{CanvasElement, CanvasRenderer},
     connection_point::ConnectionPoint,
     console_option::ConsoleOption,
-    logic_gate::{LogicGate, LogicGateType},
 };
 
 use super::GRID_SIZE;
@@ -28,32 +28,28 @@ pub struct Workarea {
     onmousemove: Function,
     canvas_elements: Rc<RefCell<Vec<CanvasElement>>>,
     connection_points: Rc<RefCell<Vec<ConnectionPoint>>>,
-    selected_tool: Rc<RefCell<Option<CanvasElement>>>,
+    application_state: Rc<RefCell<ApplicationState>>,
+    // selected_tool: Rc<RefCell<Option<CanvasElement>>>,
 }
 
 impl Workarea {
     #[allow(clippy::cast_possible_truncation)]
-    pub fn new() -> Result<Self, JsValue> {
+    pub fn new(application_state: Rc<RefCell<ApplicationState>>) -> Result<Self, JsValue> {
         let width = Rc::new(Cell::new(Self::get_width()));
         let height = Rc::new(Cell::new(Self::get_height()));
         let mouse_position = Rc::new(Cell::new((0, 0)));
         let grid_position = Rc::new(Cell::new((0.0, 0.0)));
         let canvas_elements: Rc<RefCell<Vec<CanvasElement>>> = Rc::new(RefCell::new(Vec::new()));
-        let selected_tool: Rc<RefCell<Option<CanvasElement>>> = Rc::new(RefCell::new(Some(
-            LogicGate::new(LogicGateType::And)
-                .unwrap_to_console()
-                .into_canvas_element((0.0, 0.0)),
-        )));
         let connection_points = Rc::new(RefCell::new(Vec::new()));
 
         let onclick = {
             let grid_position = grid_position.clone();
             let canvas_elements = canvas_elements.clone();
-            let selected_tool = selected_tool.clone();
+            let application_state = application_state.clone();
             let connection_points = connection_points.clone();
             let closure: Closure<dyn FnMut(web_sys::MouseEvent)> =
                 Closure::new(move |_event: web_sys::MouseEvent| {
-                    if let Some(tool) = selected_tool.borrow().as_ref() {
+                    if let Some(tool) = application_state.borrow().tool_active.as_ref() {
                         canvas_elements
                             .borrow_mut()
                             .push(tool.at_position(grid_position.get()));
@@ -78,18 +74,6 @@ impl Workarea {
                 });
             closure.into_js_value().dyn_into()?
         };
-        {
-            // canvas_elements.borrow_mut().push(
-            //     LogicGate::new_with_inverted_inputs(LogicGateType::Nand, (true, true))
-            //         .as_canvas_element((0.0, 0.0)),
-            // );
-            // canvas_elements
-            //     .borrow_mut()
-            //     .push(LogicGate::new(LogicGateType::Nor).as_canvas_element((100.0, 0.0)));
-            // canvas_elements
-            //     .borrow_mut()
-            //     .push(LogicGate::new(LogicGateType::And).as_canvas_element((200.0, 0.0)));
-        }
 
         Ok(Self {
             mouse_position,
@@ -100,7 +84,7 @@ impl Workarea {
             onclick,
             onmousemove,
             canvas_elements,
-            selected_tool,
+            application_state,
             connection_points,
         })
     }
@@ -136,12 +120,19 @@ impl Workarea {
 
     /// This is a simple function to render the currently selected tool
     fn render_selected_tool(&self, context: &CanvasRenderingContext2d) -> Result<(), JsValue> {
-        if let Some(tool) = &self.selected_tool.borrow().as_ref() {
+        if let Some(tool) = self
+            .application_state
+            .borrow()
+            .tool_active
+            .as_ref()
+            .as_ref()
+        {
+            // FIXME: Connections are currently made trough elements, which is not wanted
             tool.render_at_position(context, self.grid_position.clone().get())?;
             for cp in tool.get_connection_points() {
                 let cp1 = &cp.get_absolute_at_position(self.grid_position.clone().get());
                 for cp2 in self.connection_points.borrow().iter() {
-                    if Self::check_connection_points(cp1, cp2) {
+                    if self.check_connection_points(cp1, cp2) {
                         context.begin_path();
                         context.set_stroke_style(&JsValue::from_str("black"));
                         context.move_to(cp1.get_position_x(), cp1.get_position_y());
@@ -153,10 +144,11 @@ impl Workarea {
         }
         Ok(())
     }
+    // FIXME: Connections are currently made trough elements, which is not wanted
     fn render_connections(&self, context: &CanvasRenderingContext2d) {
         for cp1 in self.connection_points.borrow().iter() {
             for cp2 in self.connection_points.borrow().iter() {
-                if Self::check_connection_points(cp1, cp2) {
+                if self.check_connection_points(cp1, cp2) {
                     context.begin_path();
                     context.set_stroke_style(&JsValue::from_str("black"));
                     context.move_to(cp1.get_position_x(), cp1.get_position_y());
@@ -168,7 +160,7 @@ impl Workarea {
     }
 
     #[allow(clippy::cast_possible_truncation)]
-    fn check_connection_points(cp1: &ConnectionPoint, cp2: &ConnectionPoint) -> bool {
+    fn check_connection_points(&self, cp1: &ConnectionPoint, cp2: &ConnectionPoint) -> bool {
         if cp1 == cp2 {
             return false;
         } else if (cp1.get_position_x() as i32 == cp2.get_position_x() as i32
@@ -186,9 +178,34 @@ impl Workarea {
                         && cp1.get_direction_x_pos()
                         && cp2.get_direction_x_neg()))
         {
+            for canvas_element in self.canvas_elements.borrow().iter() {
+                if Self::check_if_crosses(cp1, cp2, canvas_element) {
+                    return false;
+                }
+            }
             return true;
         }
         false
+    }
+
+    fn check_if_crosses(
+        cp1: &ConnectionPoint,
+        cp2: &ConnectionPoint,
+        canvas_element: &CanvasElement,
+    ) -> bool {
+        let x1 = cp1.get_position_x();
+        let y1 = cp1.get_position_y();
+        let x2 = cp2.get_position_x();
+        let y2 = cp2.get_position_y();
+        let (x3, y3) = canvas_element.get_position();
+        let h3 = canvas_element.get_height();
+        let w3 = canvas_element.get_width();
+
+        const ERROR_ROOM: f64 = 0.01f64;
+        x1 < x3 && x2 > x3 && y1 > (y3-ERROR_ROOM) && y1 < (y3 + h3+ERROR_ROOM)// line crosses horizontally
+            || x2 < x3 && x1 > x3 && y2 > (y3-ERROR_ROOM) && y2 < (y3 + h3+ERROR_ROOM) // line crosses horizontally
+            || y1 < y3 && y2 > y3 && x1 > (x3-ERROR_ROOM) && x1 < (x3 + w3+ERROR_ROOM)// line crosses vertically
+            || y2 < y3 && y1 > y3 && x2 > (x3-ERROR_ROOM) && x2 < (x3 + w3+ERROR_ROOM) // line crosses vertically
     }
 
     fn get_context_from_canvas(

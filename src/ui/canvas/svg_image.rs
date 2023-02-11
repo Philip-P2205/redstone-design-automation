@@ -1,6 +1,6 @@
 use js_sys::Function;
-use wasm_bindgen::{JsValue, prelude::Closure, JsCast};
-use web_sys::{HtmlImageElement, BlobPropertyBag, CanvasRenderingContext2d, Blob};
+use wasm_bindgen::{prelude::Closure, JsCast, JsValue};
+use web_sys::{Blob, BlobPropertyBag, CanvasRenderingContext2d, HtmlImageElement};
 
 use crate::ui::console_option::ConsoleOption;
 
@@ -9,6 +9,7 @@ use super::renderer::CanvasContextRenderer;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CanvasSVGImage {
     pub image: HtmlImageElement,
+    url: String,
     _onload: Function,
 }
 
@@ -24,17 +25,25 @@ impl CanvasSVGImage {
         let url = web_sys::Url::create_object_url_with_blob(&blob)?;
         image.set_src(&url);
 
-        let closure: Closure<dyn FnMut()> = Closure::new(move || {
-            web_sys::Url::revoke_object_url(&url)
-                .expect_to_console(&format!("Could not revoke object url for {url}"));
-            // info!("Drawing image!", &url);
-        });
+        let closure: Closure<dyn FnMut()> = {
+            let url = url.clone();
+            Closure::new(move || {
+                web_sys::Url::revoke_object_url(&url)
+                    .expect_to_console(&format!("Could not revoke object url for {url}"));
+                // info!("Drawing image!", &url);
+            })
+        };
         let onload: Function = closure.into_js_value().dyn_into()?;
         image.set_onload(Some(&onload));
         Ok(Self {
             image,
             _onload: onload,
+            url,
         })
+    }
+
+    pub fn get_url(&self) -> String {
+        self.url.clone()
     }
 }
 

@@ -9,6 +9,8 @@ use super::renderer::CanvasContextRenderer;
 pub struct CanvasElement {
     element: Box<dyn CanvasContextRenderer>,
     position: (f64, f64),
+    height: f64,
+    width: f64,
     connection_points: Vec<ConnectionPoint>,
 }
 
@@ -21,11 +23,15 @@ impl CanvasElement {
     pub fn new(
         element: Box<dyn CanvasContextRenderer>,
         position: (f64, f64),
-        connection_points: &[ConnectionPoint],
+        height: f64,
+        width: f64,
+        connection_points: Vec<ConnectionPoint>,
     ) -> Self {
         Self {
             element,
             position,
+            height,
+            width,
             connection_points: connection_points.to_vec(),
         }
     }
@@ -46,13 +52,21 @@ impl CanvasElement {
     // pub fn set_position(&mut self, position: (f64, f64)) {
     //     self.position = position;
     // }
-    // pub fn get_position(&self) -> (f64, f64) {
-    //     self.position
-    // }
+    pub fn get_position(&self) -> (f64, f64) {
+        self.position
+    }
+    pub fn get_height(&self) -> f64 {
+        self.height
+    }
+    pub fn get_width(&self) -> f64 {
+        self.width
+    }
     pub fn at_position(&self, position: (f64, f64)) -> Self {
         Self {
             element: self.element.clone(),
             position,
+            width: self.width,
+            height: self.height,
             connection_points: self.connection_points.clone(),
         }
     }

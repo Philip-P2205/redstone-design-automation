@@ -1,14 +1,22 @@
+use std::fmt::Display;
+
+use stylist::style;
 use wasm_bindgen::JsValue;
+use yew::html;
 
-use crate::ui::canvas::{CanvasContextRenderer, CanvasSVGImage};
+use crate::ui::{
+    canvas::{CanvasContextRenderer, CanvasSVGImage},
+    console_option::ConsoleOption,
+    redstone_component::{ComponentType, RedstoneComponent},
+};
 
-use super::{
+use super::super::{
     canvas::{CanvasElement, IntoCanvasElement},
     connection_point::ConnectionPoint,
 };
 
 #[allow(dead_code)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LogicGateType {
     And,
     Or,
@@ -30,7 +38,6 @@ impl LogicGateType {
             </svg>"#
         )
     }
-
     const fn get_svg_text(&self) -> (&'static str, i32) {
         use LogicGateType::{And, Nand, Nor, Or, Xor};
         match self {
@@ -66,11 +73,18 @@ impl LogicGateType {
     }
 }
 
+impl Display for LogicGateType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self:?} Gate")
+    }
+}
+
 #[derive(Clone)]
 /// A Simple 2 input 1 ouput logic gate
 pub struct LogicGate {
-    _gate_type: LogicGateType,
+    gate_type: LogicGateType,
     image: CanvasSVGImage,
+    _inputs_inverted: (bool, bool),
 }
 impl LogicGate {
     pub fn new(gate_type: LogicGateType) -> Result<Self, JsValue> {
@@ -83,18 +97,43 @@ impl LogicGate {
     ) -> Result<Self, JsValue> {
         let image = CanvasSVGImage::new(gate_type.get_svg_string(inputs_inverted))?;
         Ok(Self {
-            _gate_type: gate_type,
+            gate_type,
             image,
+            _inputs_inverted: inputs_inverted,
         })
     }
-    pub const fn get_connection_points() -> [ConnectionPoint; 3] {
-        [
-            ConnectionPoint::new(0.0, 25.0, [true, false, false, true]),
-            ConnectionPoint::new(0.0, 75.0, [false, false, true, true]),
-            ConnectionPoint::new(125.0, 50.0, [true, true, true, false]),
-        ]
+
+    const CONNECTION_POINTS: &[ConnectionPoint] = &[
+        ConnectionPoint::new(0.0, 25.0, [true, false, false, true]),
+        ConnectionPoint::new(0.0, 75.0, [false, false, true, true]),
+        ConnectionPoint::new(125.0, 50.0, [true, true, true, false]),
+    ];
+}
+
+impl RedstoneComponent for LogicGate {
+    fn get_connection_points(&self) -> Vec<ConnectionPoint> {
+        Self::CONNECTION_POINTS.to_vec()
+    }
+    fn get_component_type(&self) -> ComponentType {
+        ComponentType::LogicGate(self.gate_type)
+    }
+    fn get_component_list_item_title(&self) -> String {
+        format!("{}", self.gate_type)
+    }
+    fn get_component_list_item_icon(&self) -> yew::Html {
+        let style_image = style!(
+            r#"
+            align-self: center;
+            height: 50px;
+        "#
+        )
+        .unwrap_to_console();
+        html! {
+            <img class={ style_image } src={ self.image.get_url() } />
+        }
     }
 }
+
 impl CanvasContextRenderer for LogicGate {
     fn render_at_position(
         &self,
@@ -114,6 +153,7 @@ impl TryFrom<LogicGateType> for LogicGate {
 
 impl IntoCanvasElement for LogicGate {
     fn into_canvas_element(self, position: (f64, f64)) -> CanvasElement {
-        CanvasElement::new(Box::new(self), position, &Self::get_connection_points())
+        let connection_points = self.get_connection_points();
+        CanvasElement::new(Box::new(self), position, 100.0, 125.0, connection_points)
     }
 }

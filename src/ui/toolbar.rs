@@ -2,19 +2,13 @@ use stylist::style;
 use yew::{html, html_nested, virtual_dom::VChild, Callback, Classes, Component, MouseEvent, Properties};
 use yew_icons::{Icon, IconId};
 
-use crate::impl_display_with_debug;
-
-use super::bar::BarVertical;
+use super::{bar::BarVertical, application::CallbackReason};
 #[derive(Debug, Clone, PartialEq, Properties)]
 pub struct Props {
     #[prop_or_default]
     pub class: Classes,
     pub callback: Callback<CallbackReason>
 }
-
-#[derive(Debug, Clone, Copy)]
-pub enum CallbackReason {}
-impl_display_with_debug!(CallbackReason);
 
 pub struct Toolbar {}
 

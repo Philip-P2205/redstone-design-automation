@@ -1,55 +1,111 @@
-use gloo::console::debug;
+use std::{cell::RefCell, rc::Rc};
+
 use stylist::{css, style, yew::Global};
 use yew::prelude::*;
 
+use crate::impl_display_with_debug;
+
 use super::{
-    component_list::{self, ComponentList},
-    console_option::ConsoleOption,
-    main_header::{self, MainHeader},
-    toolbar::{self, Toolbar},
-    workspace::{self, Workspace},
+    canvas::CanvasElement, component_list::ComponentList, console_option::ConsoleOption,
+    keybard_input_handler::KeyboardInputHandler, main_header::MainHeader, toolbar::Toolbar,
+    workspace::Workspace,
 };
-pub enum ApplicationMsg {
-    MainHeaderCallback(main_header::CallbackReason),
-    ToolbarCallback(toolbar::CallbackReason),
-    ComponentListCallback(component_list::CallbackReason),
-    WorkspaceCallback(workspace::CallbackReason),
+
+#[derive(Clone)]
+pub enum CallbackReason {
+    ToolChanged(Option<CanvasElement>),
 }
 
-pub struct Application {}
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Command {
+    // File
+    New,
+    Open,
+    Save,
+    _SaveAs,
+    _Import,
+    _Export,
+    Print,
+    Close,
+    Exit,
+
+    // Edit
+    Undo,
+    Redo,
+    Copy,
+    Cut,
+    Paste,
+    Delete,
+
+    // View
+    ZoomIn,
+    ZoomOut,
+    FitWindow,
+    ToggleGrid,
+
+    // Tools
+    ExitCurrentTool,
+    RotateLeft,
+    RotateRight,
+    MirrorVertical,
+    MirrorHorizontal,
+    MakeConnections,
+    PlaceText,
+    // - Simulation
+    _StartSimulation,
+    _RunSimulaiton,
+    _StopSimulation,
+    _StepSimulaiton,
+    _RestartSimulation,
+    _PauseAtChangeSimulation,
+}
+impl_display_with_debug!(Command);
+
+pub enum ApplicationMsg {
+    Callback(CallbackReason),
+    Command(Command),
+}
+
+#[derive(Default, Clone, PartialEq)]
+pub struct ApplicationState {
+    pub tool_active: Option<CanvasElement>,
+}
+
+pub struct Application {
+    application_state: Rc<RefCell<ApplicationState>>,
+    _keyboard_handler: KeyboardInputHandler,
+}
 
 impl Component for Application {
     type Message = ApplicationMsg;
     type Properties = ();
 
-    fn create(_ctx: &yew::Context<Self>) -> Self {
-        Self {}
+    fn create(ctx: &yew::Context<Self>) -> Self {
+        let keyboard_handler = {
+            let callback = ctx.link().callback(ApplicationMsg::Command);
+            KeyboardInputHandler::new(callback)
+        };
+        Self {
+            application_state: Rc::default(),
+            _keyboard_handler: keyboard_handler,
+        }
     }
     fn update(&mut self, _ctx: &yew::Context<Self>, msg: Self::Message) -> bool {
-        use ApplicationMsg::{
-            ComponentListCallback, MainHeaderCallback, ToolbarCallback, WorkspaceCallback,
-        };
         match msg {
-            ComponentListCallback(reason) => {
-                debug!(
-                    "ComponentList emitted callback with reason: ",
-                    reason.to_string()
-                );
-            }
-            MainHeaderCallback(reason) => {
-                debug!(
-                    "MainHeader emitted callback with reason: ",
-                    reason.to_string()
-                );
-            }
-            ToolbarCallback(reason) => {
-                debug!("Toolbar emitted callback with reason: ", reason.to_string());
-            }
-            WorkspaceCallback(reason) => {
-                debug!(
-                    "Workspace emitted callback with reason: ",
-                    reason.to_string()
-                );
+            ApplicationMsg::Callback(_reason) => match _reason {
+                CallbackReason::ToolChanged(tool) => {
+                    self.application_state.borrow_mut().tool_active = tool;
+                }
+            },
+            ApplicationMsg::Command(cmd) => {
+                log::debug!("Command issued: {}", cmd);
+
+                match cmd {
+                    Command::ExitCurrentTool => {
+                        self.application_state.borrow_mut().tool_active = None;
+                    }
+                    _ => {},
+                }
             }
         }
         false
@@ -104,10 +160,10 @@ impl Component for Application {
         )
         .unwrap_to_console();
 
-        let main_header_callback = ctx.link().callback(ApplicationMsg::MainHeaderCallback);
-        let toolbar_callback = ctx.link().callback(ApplicationMsg::ToolbarCallback);
-        let component_list_callback = ctx.link().callback(ApplicationMsg::ComponentListCallback);
-        let workspace_callback = ctx.link().callback(ApplicationMsg::WorkspaceCallback);
+        let main_header_callback = ctx.link().callback(ApplicationMsg::Callback);
+        let toolbar_callback = ctx.link().callback(ApplicationMsg::Callback);
+        let component_list_callback = ctx.link().callback(ApplicationMsg::Callback);
+        let workspace_callback = ctx.link().callback(ApplicationMsg::Callback);
 
         html! {
             <div id ="page">
@@ -117,7 +173,7 @@ impl Component for Application {
                     <MainHeader callback={ main_header_callback } class={ main_header }/>
                     <Toolbar callback={ toolbar_callback } class={toolbar}/>
                     <ComponentList callback={ component_list_callback }class={component_list}/>
-                    <Workspace callback={ workspace_callback } class={ workspace }/>
+                    <Workspace callback={ workspace_callback } application_state={ self.application_state.clone() } class={ workspace }/>
                 </div>
             </div>
         }

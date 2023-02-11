@@ -1,11 +1,13 @@
+use std::{rc::Rc, cell::RefCell};
+
 use stylist::style;
 use yew::{html, Classes, Component, Properties, Callback};
 
-use crate::impl_display_with_debug;
+use crate::ui::application::{CallbackReason, ApplicationState};
 
 use super::{
     super::{
-        canvas::{Canvas, CanvasElement},
+        canvas::{Canvas},
         console_option::ConsoleOption,
     },
     workarea::Workarea,
@@ -13,10 +15,6 @@ use super::{
 
 pub const GRID_SIZE: f64 = 25.0;
 pub const GRID_SIZE_PROPS: &str = "25px";
-
-#[derive(Debug, Clone, Copy)]
-pub enum CallbackReason {}
-impl_display_with_debug!(CallbackReason);
 
 #[derive(Clone, PartialEq, Properties)]
 pub struct Props {
@@ -27,7 +25,7 @@ pub struct Props {
     #[prop_or(GRID_SIZE_PROPS)]
     pub grid_size: &'static str,
     #[prop_or_default]
-    pub selected_tool: Option<CanvasElement>,
+    pub application_state: Rc<RefCell<ApplicationState>>
 }
 pub struct Workspace {}
 
@@ -69,7 +67,7 @@ impl Component for Workspace {
         grid_size= ctx.props().grid_size
     ).unwrap_to_console();
         classes.push(style_workspace);
-        let workarea = Workarea::new().unwrap_to_console();
+        let workarea = Workarea::new(ctx.props().application_state.clone()).unwrap_to_console();
 
         html! (
             <div class={ classes }>
